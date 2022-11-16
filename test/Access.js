@@ -67,5 +67,10 @@ describe("Access", function () {
 
     // user3 not granted function and rejected
     await expect(mockProtocol.connect(user3).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+
+    // run internal access check for approved call, only for gas consumption comparison
+    await mockProtocol.embeddedAccFunc1(1);
+    // run internal access check for not approved call, only for gas consumption comparison
+    await expect(mockProtocol.connect(user1).embeddedAccFunc1(1)).to.be.reverted;
   });
 });

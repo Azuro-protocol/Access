@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
 import "./interface/IAccess.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -64,9 +62,10 @@ contract Access is Ownable, ERC721, IAccess {
         address _contract,
         bytes4 selector
     ) external view override {
-        bytes32 funcId = _getFunctionId(_contract, selector);
-        if (uint256(functionRoles[funcId] & userRoles[sender]) == 0)
-            revert AccessNotGranted();
+        if (
+            (functionRoles[_getFunctionId(_contract, selector)] &
+                userRoles[sender]) == 0
+        ) revert AccessNotGranted();
     }
 
     //@dev this function supposed to be internal and used in ERC721 transfer
