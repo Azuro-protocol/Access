@@ -123,4 +123,42 @@ describe("Access", function () {
     // user2 has granted function
     await mockProtocol.connect(user2).externalAccFunc1(1);
   });
+  it("granted user1, check user1 accessed to function, user1 burns grant", async () => {
+    /**
+      User granted roles          func1 binded roles
+      ------+--------+            ------+--------+---------+
+            |  Role0 |                  |  Role0 |  Granted|
+      ------+--------+            ------+--------+---------+
+      User1 |    V   |            User1 |    V   |   Yes   |
+
+      User1 burns Role0
+
+      User granted roles          func1 binded roles
+      ------+--------+            ------+--------+---------+
+            |  Role0 |                  |  Role0 |  Granted|
+      ------+--------+            ------+--------+---------+
+      User1 |        |            User1 |        |   No    |
+     */
+
+    const { owner, user1, user2, _, selector, funcIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
+
+    // add role
+    let res = await makeAddRole(access, owner, "Role0");
+
+    // bind Role0
+    let resBind = await makeBindRole(access, owner, mockProtocol.address, selector, res.roleId);
+    expect(resBind.funcId).to.be.eq(funcIdCalced.toHexString());
+
+    // user1 add rights Role0
+    let resGranted = await makeGrantRole(access, owner, user1, res.roleId);
+
+    // user1 has granted function
+    await mockProtocol.connect(user1).externalAccFunc1(1);
+
+    // User1 burns acces token (Role0)
+    await access.connect(user1).burn(resGranted.tokenId);
+
+    // user1 not granted function and rejected
+    await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+  });
 });

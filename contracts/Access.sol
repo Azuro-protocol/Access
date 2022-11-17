@@ -109,6 +109,14 @@ contract Access is Ownable, ERC721, IAccess {
         _safeMint(user, nextTokenId++);
     }
 
+    /**
+     * @notice user burn owned access token
+     * @param  tokenId owned token id to burn
+     */
+    function burn(uint256 tokenId) external {
+        _burn(tokenId);
+    }
+
     function _afterTokenTransfer(
         address from,
         address to,
