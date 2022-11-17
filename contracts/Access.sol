@@ -25,6 +25,10 @@ contract Access is Ownable, ERC721, IAccess {
         string memory symbol_
     ) ERC721(name_, symbol_) {}
 
+    /**
+     * @notice add new role
+     * @param  roleName role name
+     */
     function addRole(string memory roleName) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
         roles[nextRole] = _role;
@@ -32,6 +36,12 @@ contract Access is Ownable, ERC721, IAccess {
         if (nextRole > type(uint8).max) revert MaxRolesReached();
     }
 
+    /**
+     * @notice bind access role to contract-function
+     * @param  _contract smart contract address
+     * @param  selector function selector
+     * @param  roleId role id
+     */
     function bindRole(
         address _contract,
         bytes4 selector,
@@ -42,6 +52,11 @@ contract Access is Ownable, ERC721, IAccess {
         emit roleBinded(funcId, roleId);
     }
 
+    /**
+     * @notice rename access role
+     * @param  roleName new role name
+     * @param  roleId role id
+     */
     function renameRole(
         string memory roleName,
         uint8 roleId
@@ -51,6 +66,12 @@ contract Access is Ownable, ERC721, IAccess {
         emit roleRenamed(_role, roleId);
     }
 
+    /**
+     * @notice unbind access role from contract-function
+     * @param  _contract smart contract address
+     * @param  selector function selector
+     * @param  roleId role id
+     */
     function unbindRole(
         address _contract,
         bytes4 selector,
@@ -61,6 +82,12 @@ contract Access is Ownable, ERC721, IAccess {
         emit roleUnBinded(funcId, roleId);
     }
 
+    /**
+     * @notice sender check access for contract-selector by granted group
+     * @param  sender sender account
+     * @param  _contract smart contract to check access
+     * @param  selector function selector to check access
+     */
     function checkAccess(
         address sender,
         address _contract,
@@ -72,7 +99,11 @@ contract Access is Ownable, ERC721, IAccess {
         ) revert AccessNotGranted();
     }
 
-    //@dev this function supposed to be internal and used in ERC721 transfer
+    /**
+     * @notice grant access role for user 
+     * @param  user grant for user 
+     * @param  roleId grant role id 
+     */
     function grantRole(address user, uint8 roleId) external onlyOwner {
         tokenRoles[nextTokenId] = roleId;
         _safeMint(user, nextTokenId++);
@@ -82,7 +113,7 @@ contract Access is Ownable, ERC721, IAccess {
         address from,
         address to,
         uint256 firstTokenId,
-        uint256 // unused poaram - silence warning
+        uint256 // unused parameter - silence warning
     ) internal virtual override {
         uint8 roleId = tokenRoles[firstTokenId];
         if (to != address(0) && _roleExists(to, roleId))
