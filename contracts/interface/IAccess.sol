@@ -12,6 +12,7 @@ interface IAccess {
 
     error MaxRolesReached();
     error AccessNotGranted();
+    error RoleAlreadyGranted();
 
     function checkAccess(
         address sender,

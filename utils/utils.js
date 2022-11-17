@@ -21,6 +21,21 @@ const getroleGrantedDetails = async (txAdd) => {
   return { user: eAdd[0].args.user, roleId: eAdd[0].args.roleId };
 };
 
+const getTransferNFTTokenDetails = async (access, tx) => {
+  const receipt = await tx.wait();
+  let iface = new ethers.utils.Interface(
+    access.interface.format(ethers.utils.FormatTypes.full).filter((x) => {
+      return x.includes("Transfer");
+    })
+  );
+  let log = iface.parseLog(receipt.logs[0]);
+  return {
+    from: log.args.from,
+    to: log.args.to,
+    tokenId: log.args.tokenId,
+  };
+};
+
 const makeAddRole = async (access, owner, roleName) => {
   let txAdd = await access.connect(owner).addRole(roleName);
   let res = await getroleAddedDetails(txAdd);
@@ -36,7 +51,8 @@ const makeBindRole = async (access, owner, contract, selector, roleId) => {
 const makeGrantRole = async (access, owner, user, roleId) => {
   let txAdd = await access.connect(owner).grantRole(user.address, roleId);
   let res = await getroleGrantedDetails(txAdd);
-  return { user: res.user, roleId: res.roleId };
+  let tranferRes = await getTransferNFTTokenDetails(access, txAdd);
+  return { user: res.user, roleId: res.roleId, from: tranferRes.from, to: tranferRes.to, tokenId: tranferRes.tokenId };
 };
 
 module.exports = {
