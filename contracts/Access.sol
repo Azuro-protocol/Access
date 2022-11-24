@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
 import "./interface/IAccess.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Access is Ownable, ERC721, IAccess {
+contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     uint256 public nextRole;
+    uint256 public nextTokenId;
 
     mapping(uint256 => bytes32) public roles;
 
@@ -18,11 +18,18 @@ contract Access is Ownable, ERC721, IAccess {
     // user's granted roles
     mapping(address => uint256) public userRoles;
 
+    // tokens - roles
+    mapping(uint256 => uint8) public tokenRoles;
+
     constructor(
         string memory name_,
         string memory symbol_
     ) ERC721(name_, symbol_) {}
 
+    /**
+     * @notice add new role
+     * @param  roleName role name
+     */
     function addRole(string memory roleName) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
         roles[nextRole] = _role;
@@ -30,62 +37,122 @@ contract Access is Ownable, ERC721, IAccess {
         if (nextRole > type(uint8).max) revert MaxRolesReached();
     }
 
+    /**
+     * @notice bind access role to contract-function
+     * @param  target smart contract address
+     * @param  selector function selector
+     * @param  roleId role id
+     */
     function bindRole(
-        address _contract,
+        address target,
         bytes4 selector,
-        uint8 _roleId
+        uint8 roleId
     ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(_contract, selector);
-        functionRoles[funcId] = functionRoles[funcId] | (1 << _roleId);
-        emit roleBinded(funcId, _roleId);
+        bytes32 funcId = _getFunctionId(target, selector);
+        functionRoles[funcId] = functionRoles[funcId] | (1 << roleId);
+        emit roleBound(funcId, roleId);
     }
 
+    /**
+     * @notice rename access role
+     * @param  roleName new role name
+     * @param  roleId role id
+     */
     function renameRole(
         string memory roleName,
-        uint8 _roleId
+        uint8 roleId
     ) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
-        roles[_roleId] = _role;
-        emit roleRenamed(_role, _roleId);
+        roles[roleId] = _role;
+        emit roleRenamed(_role, roleId);
     }
 
+    /**
+     * @notice unbind access role from contract-function
+     * @param  target smart contract address
+     * @param  selector function selector
+     * @param  roleId role id
+     */
     function unbindRole(
-        address _contract,
+        address target,
         bytes4 selector,
-        uint8 _roleId
+        uint8 roleId
     ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(_contract, selector);
-        functionRoles[funcId] = functionRoles[funcId] & ~(1 << _roleId);
-        emit roleUnBinded(funcId, _roleId);
+        bytes32 funcId = _getFunctionId(target, selector);
+        functionRoles[funcId] = functionRoles[funcId] & ~(1 << roleId);
+        emit roleUnbound(funcId, roleId);
     }
 
+    /**
+     * @notice sender check access for contract-selector by granted group
+     * @param  sender sender account
+     * @param  target smart contract to check access
+     * @param  selector function selector to check access
+     */
     function checkAccess(
         address sender,
-        address _contract,
+        address target,
         bytes4 selector
     ) external view override {
-        bytes32 funcId = _getFunctionId(_contract, selector);
-        if (uint256(functionRoles[funcId] & userRoles[sender]) == 0)
-            revert AccessNotGranted();
+        if (
+            (functionRoles[_getFunctionId(target, selector)] &
+                userRoles[sender]) == 0
+        ) revert AccessNotGranted();
     }
 
-    //@dev this function supposed to be internal and used in ERC721 transfer
-    function grantRole(address user, uint8 _roleId) external {
-        userRoles[user] = userRoles[user] | (1 << _roleId);
-        emit roleGranted(user, _roleId);
+    /**
+     * @notice grant access role for user
+     * @param  user grant for user
+     * @param  roleId grant role id
+     */
+    function grantRole(address user, uint8 roleId) external onlyOwner {
+        uint256 _nextTokenId = nextTokenId++;
+        tokenRoles[_nextTokenId] = roleId;
+        _safeMint(user, _nextTokenId);
     }
 
-    //@dev this function supposed to be internal and used in ERC721 transfer
-    function revokeRole(address user, uint8 _roleId) external {
-        userRoles[user] = userRoles[user] | (1 << _roleId);
-        emit roleRevoked(user, _roleId);
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 firstTokenId,
+        uint256 // unused parameter - silence warning
+    ) internal virtual override {
+        uint8 roleId = tokenRoles[firstTokenId];
+        // not burn
+        if (to != address(0)) {
+            if (_roleExists(to, roleId)) revert RoleAlreadyGranted();
+            _grantRole(to, roleId);
+        }
+        // not mint
+        if (from != address(0)) _revokeRole(from, roleId);
     }
 
     function _getFunctionId(
-        address _contract,
+        address target,
         bytes4 selector
     ) internal pure returns (bytes32) {
-        return
-            bytes32(abi.encodePacked(_contract)) | (bytes32(selector) >> 224);
+        return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
+    }
+
+    function _getRole(uint256 tokenId) internal view returns (uint8) {
+        return tokenRoles[tokenId];
+    }
+
+    function _grantRole(address user, uint8 roleId) internal {
+        userRoles[user] = userRoles[user] | (1 << roleId);
+        emit roleGranted(user, roleId);
+    }
+
+    function _revokeRole(address user, uint8 roleId) internal {
+        userRoles[user] = userRoles[user] & ~(1 << roleId);
+        emit roleRevoked(user, roleId);
+    }
+
+    function _roleExists(
+        address user,
+        uint8 roleId
+    ) public view returns (bool) {
+        uint256 roleBit = 1 << roleId;
+        return userRoles[user] & roleBit == roleBit;
     }
 }

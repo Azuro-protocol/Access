@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-contract-sizer");
+require("hardhat-gas-reporter");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -8,5 +9,9 @@ module.exports = {
     alphaSort: false,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+  gasReporter: {
+    enabled: true,
+    currency: "USD",
   },
 };
