@@ -83,6 +83,7 @@ function func1(uint256 someValue)
 #### 2. Owner addes roles to *Access.sol*
 ```solidity
 function addRole(string memory roleName)
+* roleName stgring stored as fixed length type bytes32, so use short names to fit 32 characters (UTF-8 strings)
 ```
 #### 3. Owner bind roles to *Access.sol*
 ```solidity
