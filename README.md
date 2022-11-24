@@ -44,7 +44,7 @@ Contract-function can be bound with different roles at once.
                               -----------------------
 ```
 Every role represented by bit in 256 bits (32 bytes) access vector. There are 256 roles at access smart contract.
-Access is granted by matching user access role bits and binded function role bits
+Access is granted by matching user access role bits and bound function role bits
 ```shell
           O            Role Action1 [NFT_01]
          -|-           |                      Role Action2 [NFT_02]
