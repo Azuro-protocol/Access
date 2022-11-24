@@ -3,9 +3,10 @@ pragma solidity ^0.8.17;
 
 import "./interface/IAccess.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Access is Ownable, ERC721, IAccess {
+contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     uint256 public nextRole;
     uint256 public nextTokenId;
 
@@ -38,18 +39,18 @@ contract Access is Ownable, ERC721, IAccess {
 
     /**
      * @notice bind access role to contract-function
-     * @param  _contract smart contract address
+     * @param  target smart contract address
      * @param  selector function selector
      * @param  roleId role id
      */
     function bindRole(
-        address _contract,
+        address target,
         bytes4 selector,
         uint8 roleId
     ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(_contract, selector);
+        bytes32 funcId = _getFunctionId(target, selector);
         functionRoles[funcId] = functionRoles[funcId] | (1 << roleId);
-        emit roleBinded(funcId, roleId);
+        emit roleBound(funcId, roleId);
     }
 
     /**
@@ -68,53 +69,46 @@ contract Access is Ownable, ERC721, IAccess {
 
     /**
      * @notice unbind access role from contract-function
-     * @param  _contract smart contract address
+     * @param  target smart contract address
      * @param  selector function selector
      * @param  roleId role id
      */
     function unbindRole(
-        address _contract,
+        address target,
         bytes4 selector,
         uint8 roleId
     ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(_contract, selector);
+        bytes32 funcId = _getFunctionId(target, selector);
         functionRoles[funcId] = functionRoles[funcId] & ~(1 << roleId);
-        emit roleUnBinded(funcId, roleId);
+        emit roleUnbound(funcId, roleId);
     }
 
     /**
      * @notice sender check access for contract-selector by granted group
      * @param  sender sender account
-     * @param  _contract smart contract to check access
+     * @param  target smart contract to check access
      * @param  selector function selector to check access
      */
     function checkAccess(
         address sender,
-        address _contract,
+        address target,
         bytes4 selector
     ) external view override {
         if (
-            (functionRoles[_getFunctionId(_contract, selector)] &
+            (functionRoles[_getFunctionId(target, selector)] &
                 userRoles[sender]) == 0
         ) revert AccessNotGranted();
     }
 
     /**
-     * @notice grant access role for user 
-     * @param  user grant for user 
-     * @param  roleId grant role id 
+     * @notice grant access role for user
+     * @param  user grant for user
+     * @param  roleId grant role id
      */
     function grantRole(address user, uint8 roleId) external onlyOwner {
-        tokenRoles[nextTokenId] = roleId;
-        _safeMint(user, nextTokenId++);
-    }
-
-    /**
-     * @notice user burn owned access token
-     * @param  tokenId owned token id to burn
-     */
-    function burn(uint256 tokenId) external {
-        _burn(tokenId);
+        uint256 _nextTokenId = nextTokenId++;
+        tokenRoles[_nextTokenId] = roleId;
+        _safeMint(user, _nextTokenId);
     }
 
     function _afterTokenTransfer(
@@ -124,20 +118,20 @@ contract Access is Ownable, ERC721, IAccess {
         uint256 // unused parameter - silence warning
     ) internal virtual override {
         uint8 roleId = tokenRoles[firstTokenId];
-        if (to != address(0) && _roleExists(to, roleId))
-            revert RoleAlreadyGranted();
+        // not burn
+        if (to != address(0)) {
+            if (_roleExists(to, roleId)) revert RoleAlreadyGranted();
+            _grantRole(to, roleId);
+        }
         // not mint
         if (from != address(0)) _revokeRole(from, roleId);
-        // not burn
-        if (to != address(0)) _grantRole(to, roleId);
     }
 
     function _getFunctionId(
-        address _contract,
+        address target,
         bytes4 selector
     ) internal pure returns (bytes32) {
-        return
-            bytes32(abi.encodePacked(_contract)) | (bytes32(selector) >> 224);
+        return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
     }
 
     function _getRole(uint256 tokenId) internal view returns (uint8) {

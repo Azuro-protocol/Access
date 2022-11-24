@@ -32,7 +32,7 @@ User can owns some different token roles at once and get access for role allowed
                  |NFT_03|
                  +------+
 ```
-Contract-function can binded with different roles at once.
+Contract-function can be bound with different roles at once.
 ```shell
                                --------------------
                              / Role of Some Action /
