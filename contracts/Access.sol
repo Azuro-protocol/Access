@@ -28,7 +28,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
 
     /**
      * @notice add new role
-     * @param  roleName role name
+     * @param  roleName role name, string stored as fixed length type bytes32, so use short names to fit 32 characters (UTF-8 strings)
      */
     function addRole(string memory roleName) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
