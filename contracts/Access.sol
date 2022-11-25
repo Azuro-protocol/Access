@@ -33,7 +33,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     function addRole(string memory roleName) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
         roles[nextRole] = _role;
-        emit roleAdded(_role, nextRole++);
+        emit RoleAdded(_role, nextRole++);
         if (nextRole > type(uint8).max) revert MaxRolesReached();
     }
 
@@ -50,7 +50,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     ) external onlyOwner {
         bytes32 funcId = _getFunctionId(target, selector);
         functionRoles[funcId] = functionRoles[funcId] | (1 << roleId);
-        emit roleBound(funcId, roleId);
+        emit RoleBound(funcId, roleId);
     }
 
     /**
@@ -64,7 +64,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     ) external onlyOwner {
         bytes32 _role = bytes32(bytes(roleName));
         roles[roleId] = _role;
-        emit roleRenamed(_role, roleId);
+        emit RoleRenamed(_role, roleId);
     }
 
     /**
@@ -80,7 +80,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     ) external onlyOwner {
         bytes32 funcId = _getFunctionId(target, selector);
         functionRoles[funcId] = functionRoles[funcId] & ~(1 << roleId);
-        emit roleUnbound(funcId, roleId);
+        emit RoleUnbound(funcId, roleId);
     }
 
     /**
@@ -140,12 +140,12 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
 
     function _grantRole(address user, uint8 roleId) internal {
         userRoles[user] = userRoles[user] | (1 << roleId);
-        emit roleGranted(user, roleId);
+        emit RoleGranted(user, roleId);
     }
 
     function _revokeRole(address user, uint8 roleId) internal {
         userRoles[user] = userRoles[user] & ~(1 << roleId);
-        emit roleRevoked(user, roleId);
+        emit RoleRevoked(user, roleId);
     }
 
     function _roleExists(

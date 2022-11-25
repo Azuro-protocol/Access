@@ -1,22 +1,22 @@
 const { ethers } = require("hardhat");
 
-const getroleAddedDetails = async (txAdd) => {
+const getRoleAddedDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
-    return x.event == "roleAdded";
+    return x.event == "RoleAdded";
   });
   return { role: eAdd[0].args.role, roleId: eAdd[0].args.roleId };
 };
 
-const getroleBoundDetails = async (txAdd) => {
+const getRoleBoundDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
-    return x.event == "roleBound";
+    return x.event == "RoleBound";
   });
   return { funcId: eAdd[0].args.funcId, roleId: eAdd[0].args.roleId };
 };
 
-const getroleGrantedDetails = async (txAdd) => {
+const getRoleGrantedDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
-    return x.event == "roleGranted";
+    return x.event == "RoleGranted";
   });
   return { user: eAdd[0].args.user, roleId: eAdd[0].args.roleId };
 };
@@ -38,27 +38,27 @@ const getTransferNFTTokenDetails = async (access, tx) => {
 
 const makeAddRole = async (access, owner, roleName) => {
   let txAdd = await access.connect(owner).addRole(roleName);
-  let res = await getroleAddedDetails(txAdd);
+  let res = await getRoleAddedDetails(txAdd);
   return { role: res.role, roleId: res.roleId };
 };
 
 const makeBindRole = async (access, owner, contract, selector, roleId) => {
   let txAdd = await access.connect(owner).bindRole(contract, selector, roleId);
-  let res = await getroleBoundDetails(txAdd);
+  let res = await getRoleBoundDetails(txAdd);
   return { funcId: res.funcId, roleId: res.roleId };
 };
 
 const makeGrantRole = async (access, owner, user, roleId) => {
   let txAdd = await access.connect(owner).grantRole(user.address, roleId);
-  let res = await getroleGrantedDetails(txAdd);
+  let res = await getRoleGrantedDetails(txAdd);
   let tranferRes = await getTransferNFTTokenDetails(access, txAdd);
   return { user: res.user, roleId: res.roleId, from: tranferRes.from, to: tranferRes.to, tokenId: tranferRes.tokenId };
 };
 
 module.exports = {
-  getroleAddedDetails,
-  getroleBoundDetails,
-  getroleGrantedDetails,
+  getRoleAddedDetails,
+  getRoleBoundDetails,
+  getRoleGrantedDetails,
   makeAddRole,
   makeBindRole,
   makeGrantRole,
