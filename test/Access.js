@@ -27,26 +27,32 @@ describe("Access", function () {
   }
 
   it("try call owners funciton, from not owner", async () => {
-    const { owner, user1, user2, _, selector, funcIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, _, selector, funcIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // try add roles
     await expect(makeAddRole(access, user1, "Role0")).to.be.revertedWith("Ownable: caller is not the owner");
 
     // try bind role
     let res = await makeAddRole(access, owner, "Role0");
-    await expect(makeBindRole(access, user1, mockProtocol.address, selector, res.roleId)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeBindRole(access, user1, mockProtocol.address, selector, res.roleId)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
 
     // try grant role from not owner
-    await makeBindRole(access, owner, mockProtocol.address, selector, res.roleId);    
-    await expect(makeGrantRole(access, user1, user1, res.roleId)).to.be.revertedWith("Ownable: caller is not the owner");
+    await makeBindRole(access, owner, mockProtocol.address, selector, res.roleId);
+    await expect(makeGrantRole(access, user1, user1, res.roleId)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
 
     // try rename role from not owner
-    await expect(makeRenameRole(access, user1, res.roleId, "NewRole")).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeRenameRole(access, user1, res.roleId, "NewRole")).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
 
     // try unbind role from not owner
-    await expect(makeUnbindRole(access, user1, mockProtocol.address, selector, res.roleId)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeUnbindRole(access, user1, mockProtocol.address, selector, res.roleId)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
   });
 
   it("check granted user accessed to function, not granted user has no access", async () => {
