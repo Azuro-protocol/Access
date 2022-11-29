@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { BigNumber } = require("ethers");
-const { makeAddRole, makeBindRole, makeGrantRole } = require("../utils/utils");
+const { makeAddRole, makeBindRole, makeUnbindRole, makeGrantRole } = require("../utils/utils");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("Access", function () {
@@ -161,4 +161,48 @@ describe("Access", function () {
     // user1 not granted function and rejected
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
   });
+  it("bind Role0 to funct1 granted user1, user2, check user1, user2 accessed to func1, unbind Role0 from func1 - user1, user2 has no access", async () => {
+    /**
+      Users granted roles         func1 binded roles
+      ------+--------+            ------+--------+---------+
+            |  Role0 |                  |  Role0 |  Granted|
+      ------+--------+            ------+--------+---------+
+      User1 |    V   |            User1 |    V   |   Yes   |
+      User2 |    V   |            User2 |    V   |   Yes   |
+
+      Owner unbind Role0 from func1
+
+      User granted roles          func1 binded roles
+      ------+--------+            ------+--------+---------+
+            |  Role0 |                  |  Role0 |  Granted|
+      ------+--------+            ------+--------+---------+
+      User1 |        |            User1 |        |   No    |
+      User2 |        |            User2 |        |   No    |
+     */
+
+      const { owner, user1, user2, _, selector, funcIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
+
+      // add role
+      let res = await makeAddRole(access, owner, "Role0");
+  
+      // bind Role0
+      let resBind = await makeBindRole(access, owner, mockProtocol.address, selector, res.roleId);
+      expect(resBind.funcId).to.be.eq(funcIdCalced.toHexString());
+  
+      // user1, user2 add rights Role0
+      let resGranted1 = await makeGrantRole(access, owner, user1, res.roleId);      
+      let resGranted2 = await makeGrantRole(access, owner, user2, res.roleId);
+  
+      // user1, user2 has granted function
+      await mockProtocol.connect(user1).externalAccFunc1(1);
+      await mockProtocol.connect(user2).externalAccFunc1(1);
+
+      // unbind Role0
+      let resUnbind = await makeUnbindRole(access, owner, mockProtocol.address, selector, res.roleId);
+      expect(resUnbind.funcId).to.be.eq(funcIdCalced.toHexString());
+
+      // user1, user2 has not granted to func1
+      await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+      await expect(mockProtocol.connect(user2).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+  })
 });

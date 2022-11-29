@@ -14,6 +14,13 @@ const getRoleBoundDetails = async (txAdd) => {
   return { funcId: eAdd[0].args.funcId, roleId: eAdd[0].args.roleId };
 };
 
+const getRoleUnboundDetails = async (txAdd) => {
+  let eAdd = (await txAdd.wait()).events.filter((x) => {
+    return x.event == "RoleUnbound";
+  });
+  return { funcId: eAdd[0].args.funcId, roleId: eAdd[0].args.roleId };
+};
+
 const getRoleGrantedDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
     return x.event == "RoleGranted";
@@ -48,6 +55,12 @@ const makeBindRole = async (access, owner, contract, selector, roleId) => {
   return { funcId: res.funcId, roleId: res.roleId };
 };
 
+const makeUnbindRole = async (access, owner, contract, selector, roleId) => {
+  let txAdd = await access.connect(owner).unbindRole(contract, selector, roleId);
+  let res = await getRoleUnboundDetails(txAdd);
+  return { funcId: res.funcId, roleId: res.roleId };
+};
+
 const makeGrantRole = async (access, owner, user, roleId) => {
   let txAdd = await access.connect(owner).grantRole(user.address, roleId);
   let res = await getRoleGrantedDetails(txAdd);
@@ -58,8 +71,10 @@ const makeGrantRole = async (access, owner, user, roleId) => {
 module.exports = {
   getRoleAddedDetails,
   getRoleBoundDetails,
+  getRoleUnboundDetails,
   getRoleGrantedDetails,
   makeAddRole,
   makeBindRole,
+  makeUnbindRole,
   makeGrantRole,
 };
