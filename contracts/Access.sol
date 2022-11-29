@@ -54,6 +54,19 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
     }
 
     /**
+     * @notice get function Id from contract-function
+     * @param  target smart contract address
+     * @param  selector function selector
+     * @return function id
+     */
+    function getFunctionId(
+        address target,
+        bytes4 selector
+    ) external pure returns (bytes32) {
+        return _getFunctionId(target, selector);
+    }
+
+    /**
      * @notice rename access role
      * @param  roleName new role name
      * @param  roleId role id
