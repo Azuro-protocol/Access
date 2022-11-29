@@ -27,10 +27,6 @@ contract MockProtocol {
         access = IAccess(access_);
     }
 
-    function rawFunc1(uint256 someValue) external {
-        someVar += someValue;
-    }
-
     function embeddedAccFunc1(uint256 someValue) external onlyEmbedded {
         someVar += someValue;
     }

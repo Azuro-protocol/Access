@@ -7,6 +7,13 @@ const getRoleAddedDetails = async (txAdd) => {
   return { role: eAdd[0].args.role, roleId: eAdd[0].args.roleId };
 };
 
+const getRoleRenamedDetails = async (txAdd) => {
+  let eAdd = (await txAdd.wait()).events.filter((x) => {
+    return x.event == "RoleRenamed";
+  });
+  return { role: eAdd[0].args.role, roleId: eAdd[0].args.roleId };
+};
+
 const getRoleBoundDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
     return x.event == "RoleBound";
@@ -49,6 +56,12 @@ const makeAddRole = async (access, owner, roleName) => {
   return { role: res.role, roleId: res.roleId };
 };
 
+const makeRenameRole = async (access, owner, roleId, newRoleName) => {
+  let txAdd = await access.connect(owner).renameRole(newRoleName, roleId);
+  let res = await getRoleRenamedDetails(txAdd);
+  return { role: res.role, roleId: res.roleId };
+};
+
 const makeBindRole = async (access, owner, contract, selector, roleId) => {
   let txAdd = await access.connect(owner).bindRole(contract, selector, roleId);
   let res = await getRoleBoundDetails(txAdd);
@@ -74,6 +87,7 @@ module.exports = {
   getRoleUnboundDetails,
   getRoleGrantedDetails,
   makeAddRole,
+  makeRenameRole,
   makeBindRole,
   makeUnbindRole,
   makeGrantRole,

@@ -31,10 +31,10 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
      * @param  roleName role name, string stored as fixed length type bytes32, so use short names to fit 32 characters (UTF-8 strings)
      */
     function addRole(string memory roleName) external onlyOwner {
+        if (nextRole > type(uint8).max) revert MaxRolesReached();
         bytes32 _role = bytes32(bytes(roleName));
         roles[nextRole] = _role;
         emit RoleAdded(_role, nextRole++);
-        if (nextRole > type(uint8).max) revert MaxRolesReached();
     }
 
     /**
@@ -132,10 +132,6 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
         bytes4 selector
     ) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
-    }
-
-    function _getRole(uint256 tokenId) internal view returns (uint8) {
-        return tokenRoles[tokenId];
     }
 
     function _grantRole(address user, uint8 roleId) internal {
