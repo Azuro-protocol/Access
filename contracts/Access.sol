@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./interface/IAccess.sol";
+import "./interface/IAccessBase.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
+contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
     uint256 public nextRole;
     uint256 public nextTokenId;
 
@@ -39,18 +39,21 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
 
     /**
      * @notice bind access role to contract-function
-     * @param  target smart contract address
-     * @param  selector function selector
-     * @param  roleId role id
+     * @param  role structure parameter roleData {target, selector, roleId}
      */
-    function bindRole(
-        address target,
-        bytes4 selector,
-        uint8 roleId
-    ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(target, selector);
-        functionRoles[funcId] = functionRoles[funcId] | (1 << roleId);
-        emit RoleBound(funcId, roleId);
+    function bindRole(roleData calldata role) external onlyOwner {
+        _bindRole(role);
+    }
+
+    /**
+     * @notice bind access role to contract-function by provided list
+     * @param  roleDatas list of structure roleData {target, selector, roleId}
+     */
+    function bindRoles(roleData[] calldata roleDatas) external onlyOwner {
+        uint256 roleCount = roleDatas.length;
+        for (uint256 index = 0; index < roleCount; index++) {
+            _bindRole(roleDatas[index]);
+        }
     }
 
     /**
@@ -138,6 +141,12 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccess {
         }
         // not mint
         if (from != address(0)) _revokeRole(from, roleId);
+    }
+
+    function _bindRole(roleData calldata role) internal {
+        bytes32 funcId = _getFunctionId(role.target, role.selector);
+        functionRoles[funcId] = functionRoles[funcId] | (1 << role.roleId);
+        emit RoleBound(funcId, role.roleId);
     }
 
     function _getFunctionId(

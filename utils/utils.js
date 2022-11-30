@@ -21,6 +21,20 @@ const getRoleBoundDetails = async (txAdd) => {
   return { funcId: eAdd[0].args.funcId, roleId: eAdd[0].args.roleId };
 };
 
+const getRolesBoundDetails = async (txAdd) => {
+  let eAdd = (await txAdd.wait()).events.filter((x) => {
+    return x.event == "RoleBound";
+  });
+
+  let funcIds = [];
+  let roleIds = [];
+  for (const i of eAdd.keys()) {
+    funcIds.push(eAdd[i].args.funcId);
+    roleIds.push(eAdd[i].args.roleId);
+  }
+  return { funcIds: funcIds, roleIds: roleIds };
+};
+
 const getRoleUnboundDetails = async (txAdd) => {
   let eAdd = (await txAdd.wait()).events.filter((x) => {
     return x.event == "RoleUnbound";
@@ -63,9 +77,15 @@ const makeRenameRole = async (access, owner, roleId, newRoleName) => {
 };
 
 const makeBindRole = async (access, owner, contract, selector, roleId) => {
-  let txAdd = await access.connect(owner).bindRole(contract, selector, roleId);
+  let txAdd = await access.connect(owner).bindRole({ target: contract, selector: selector, roleId: roleId.toString() });
   let res = await getRoleBoundDetails(txAdd);
   return { funcId: res.funcId, roleId: res.roleId };
+};
+
+const makeBindRoles = async (access, owner, roleDatas) => {
+  let txAdd = await access.connect(owner).bindRoles(roleDatas);
+  let res = await getRolesBoundDetails(txAdd);
+  return { funcIds: res.funcIds, roleIds: res.roleIds };
 };
 
 const makeUnbindRole = async (access, owner, contract, selector, roleId) => {
@@ -89,6 +109,7 @@ module.exports = {
   makeAddRole,
   makeRenameRole,
   makeBindRole,
+  makeBindRoles,
   makeUnbindRole,
   makeGrantRole,
 };

@@ -37,6 +37,18 @@ contract MockProtocol {
         someVar += someValue;
     }
 
+    function externalAccFunc2(
+        uint256 someValue
+    ) external onlyAccess(this.externalAccFunc2.selector) {
+        someVar += someValue;
+    }
+
+    function externalAccFunc3(
+        uint256 someValue
+    ) external onlyAccess(this.externalAccFunc3.selector) {
+        someVar += someValue;
+    }
+
     function _checkEmbeddedAccess(address sender) internal view {
         if (sender != owner) revert OnlyOwner();
     }
