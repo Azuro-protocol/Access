@@ -4,11 +4,11 @@ const { timeout } = require("../utils/utils");
 async function main() {
   const TIME_OUT = 800;
 
-  const Access = await hre.ethers.getContractFactory("Access");
-  const access = await Access.deploy("Access NFT token", "AccNFT");
+  const Access = await ethers.getContractFactory("Access");
+  access = await upgrades.deployProxy(Access);
   await timeout(TIME_OUT);
-
   await access.deployed();
+  await timeout(TIME_OUT);
 
   console.log("Access deployed to:", access.address);
 }

@@ -3,10 +3,15 @@ pragma solidity ^0.8.17;
 
 import "./interface/IAccess.sol";
 import "./interface/IAccessMetadata.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
+contract Access is
+    OwnableUpgradeable,
+    ERC721BurnableUpgradeable,
+    IAccessMetadata,
+    IAccess
+{
     uint256 public nextRole;
     uint256 public nextTokenId;
 
@@ -21,10 +26,10 @@ contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
     // tokens - roles
     mapping(uint256 => uint8) public tokenRoles;
 
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) ERC721(name_, symbol_) {}
+    function initialize() external virtual initializer {
+        __Ownable_init_unchained();
+        __ERC721_init("Access NFT token", "AccNFT");
+    }
 
     /**
      * @notice add new role
