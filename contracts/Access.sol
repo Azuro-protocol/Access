@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./interface/IAccessBase.sol";
+import "./interface/IAccess.sol";
+import "./interface/IAccessMetadata.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Access is Ownable, ERC721Burnable, IAccessBase {
+contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
     uint256 public nextRole;
     uint256 public nextTokenId;
 
