@@ -116,8 +116,10 @@ function burn(uint256 tokenId)
 ```solidity
 function burn(uint256 tokenId)
 ```
-
-
+#### 8. Owner can revoke access by burning user's NFT token
+```solidity
+function burnToken(uint256 tokenId)
+```
 ## compile and test tasks:
 
 ```shell

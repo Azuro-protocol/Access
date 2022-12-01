@@ -57,6 +57,14 @@ contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
     }
 
     /**
+     * @notice revoke access token from user by its burning
+     * @param  tokenId role token id to be burned
+     */
+    function burnToken(uint256 tokenId) external onlyOwner {
+        _burn(tokenId);
+    }
+
+    /**
      * @notice grant access role for user
      * @param  user grant for user
      * @param  roleId grant role id

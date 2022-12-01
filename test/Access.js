@@ -431,7 +431,7 @@ describe("Access", function () {
       ------+--------+----------    ------+--------+----------    ------+--------+----------     
             |  Role0 |  Granted           |  Role1 |  Granted           |  Role2 |  Granted     
       ------+--------+----------    ------+--------+----------    ------+--------+----------    
-      User1 |    V   |    No        User1 |    V   |    Yes       User1 |    V   |    Yes        
+      User1 |    V   |    Yes       User1 |    V   |    Yes       User1 |    V   |    Yes        
       User2 |        |    No        User2 |        |    No        User2 |        |    No       
       User3 |        |    No        User3 |        |    No        User3 |        |    No        
 
@@ -500,6 +500,89 @@ describe("Access", function () {
     // user3 not granted to functions 1,2,3 and rejected
     await expect(mockProtocol.connect(user3).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
+    await expect(mockProtocol.connect(user3).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
+  });
+  // burn(uint256 tokenId)
+  it("check granted user accessed only to functions with role access, not granted user has no access, admin burn all franted tokens", async () => {
+    /**
+      Bind functions to roles
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      Func1 |    V   |         |         
+      Func2 |        |    V    |         
+      Func3 |        |         |    V
+      
+      User granted roles
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      User1 |        |    V    |         
+      User2 |    V   |         |         
+      User3 |        |         |    V
+
+
+      func1 user access             func2 user access             func3 user access             
+      ------+--------+----------    ------+--------+----------    ------+--------+----------     
+            |  Role0 |  Granted           |  Role1 |  Granted           |  Role2 |  Granted     
+      ------+--------+----------    ------+--------+----------    ------+--------+----------    
+      User1 |        |    No        User1 |    V   |    Yes       User1 |        |    No        
+      User2 |    V   |    Yes       User2 |        |    No        User2 |        |    No       
+      User3 |        |    No        User3 |        |    No        User3 |    V   |    Yes        
+
+      Admin burn tokens owned by User1, User2, User3
+
+      func1 user access             func2 user access             func3 user access             
+      ------+--------+----------    ------+--------+----------    ------+--------+----------     
+            |  Role0 |  Granted           |  Role1 |  Granted           |  Role2 |  Granted     
+      ------+--------+----------    ------+--------+----------    ------+--------+----------    
+      User1 |        |    No        User1 |        |    No        User1 |        |    No        
+      User2 |        |    No        User2 |        |    No        User2 |        |    No       
+      User3 |        |    No        User3 |        |    No        User3 |        |    No        
+
+     */
+    const { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // add roles
+    let res = [];
+    for (const i of Array(3).keys()) {
+      res.push(await makeAddRole(access, owner, "Role" + (i + 1).toString()));
+    }
+
+    // make role datas binding parameters Role0-Func1, Role1-Func2, Role2-Func3 to
+    let roleDatas = [];
+    for (const i of Array(3).keys()) {
+      roleDatas.push({ target: mockProtocol.address, selector: selectors[i], roleId: res[i].roleId.toString() });
+    }
+
+    // try bindRoles from not owner
+    await expect(makeBindRoles(access, user1, roleDatas)).to.be.revertedWith("Ownable: caller is not the owner");
+
+    let resBindRoles = await makeBindRoles(access, owner, roleDatas);
+    for (const i of Array(3).keys()) {
+      expect(resBindRoles.funcIds[i]).to.be.eq(funcsIdCalced[i].toHexString());
+    }
+
+    // add rights
+    let resGranted = [];
+    resGranted.push(await makeGrantRole(access, owner, user1, res[1].roleId)); // role 1
+    resGranted.push(await makeGrantRole(access, owner, user2, res[0].roleId)); // role 0
+    resGranted.push(await makeGrantRole(access, owner, user3, res[2].roleId)); // role 2
+
+    // user1 and user2 has granted function
+    await mockProtocol.connect(user1).externalAccFunc2(1);
+    await mockProtocol.connect(user2).externalAccFunc1(1);
+    await mockProtocol.connect(user3).externalAccFunc3(1);
+
+    // Admin (owner) burn access tokens from User1, User2, User3
+    for (const i of Array(3).keys()) {
+      await access.connect(owner).burnToken(resGranted[i].tokenId);
+    }
+
+    await expect(mockProtocol.connect(user1).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
+    await expect(mockProtocol.connect(user2).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
   });
 });
