@@ -136,7 +136,7 @@ contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
         uint8 roleId = tokenRoles[firstTokenId];
         // not burn
         if (to != address(0)) {
-            if (_roleExists(to, roleId)) revert RoleAlreadyGranted();
+            if (_roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
         // not mint
@@ -166,7 +166,7 @@ contract Access is Ownable, ERC721Burnable, IAccessMetadata, IAccess {
         emit RoleRevoked(user, roleId);
     }
 
-    function _roleExists(
+    function _roleGranted(
         address user,
         uint8 roleId
     ) public view returns (bool) {
