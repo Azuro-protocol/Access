@@ -2,11 +2,10 @@
 pragma solidity ^0.8.17;
 
 import "./interface/IAccessBase.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
+contract Access is Ownable, ERC721Burnable, IAccessBase {
     uint256 public nextRole;
     uint256 public nextTokenId;
 

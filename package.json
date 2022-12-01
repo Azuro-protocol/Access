@@ -17,7 +17,8 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "prettier_sol": "prettier --write \"contracts/**/*.sol\"",
-    "prettier-js": "npx prettier --write {scripts,scripts/*,tasks,test,utils}/*.js --print-width 120 --tab-width 2"
+    "prettier-js": "npx prettier --write {scripts,scripts/*,tasks,test,utils}/*.js --print-width 120 --tab-width 2",
+    "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
