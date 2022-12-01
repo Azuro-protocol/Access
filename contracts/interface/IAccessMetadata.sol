@@ -2,10 +2,8 @@
 
 pragma solidity ^0.8.17;
 
-import "./IAccess.sol";
-
-interface IAccessBase is IAccess {
-    struct roleData {
+interface IAccessMetadata {
+    struct RoleData {
         address target;
         bytes4 selector;
         uint8 roleId;

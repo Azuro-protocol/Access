@@ -7,6 +7,8 @@
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.0",
+    "@openzeppelin/contracts-upgradeable": "^4.8.0",
+    "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "hardhat": "^2.12.2",
     "hardhat-contract-sizer": "^2.6.1",
     "prettier": "^2.7.1",
@@ -17,7 +19,8 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "prettier_sol": "prettier --write \"contracts/**/*.sol\"",
-    "prettier-js": "npx prettier --write {scripts,scripts/*,tasks,test,utils}/*.js --print-width 120 --tab-width 2"
+    "prettier-js": "npx prettier --write {scripts,scripts/*,tasks,test,utils}/*.js --print-width 120 --tab-width 2",
+    "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
