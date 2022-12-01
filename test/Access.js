@@ -253,6 +253,10 @@ describe("Access", function () {
     let resUnbind = await makeUnbindRole(access, owner, mockProtocol.address, selectors[0], res.roleId);
     expect(resUnbind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
 
+    // unbind Role0 again - nothing happend
+    let resUnbindRepeatedTx = await access.connect(owner).unbindRole(mockProtocol.address, selectors[0], res.roleId);
+    expect((await resUnbindRepeatedTx.wait()).events.length).to.be.eq(0);
+
     // user1, user2 has not granted to func1
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user2).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
@@ -585,5 +589,42 @@ describe("Access", function () {
     await expect(mockProtocol.connect(user1).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user2).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
+  });
+  it("bind / unbind same roles", async () => {
+    /**
+      Bind functions to roles 3 times      Bind functions to roles 3 times      Bind functions to roles 3 times    
+      ------+--------+---------+---------  ------+--------+---------+---------  ------+--------+---------+---------  
+            |  Role0 |  Role1  |  Role2          |  Role0 |  Role1  |  Role2          |  Role0 |  Role1  |  Role2    
+      ------+--------+---------+---------  ------+--------+---------+---------  ------+--------+---------+---------   
+      Func1 |    V   |         |           Func1 |    V   |         |           Func1 |    V   |         |            
+
+      Actually only 1 event for 1 role bound
+
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      Func1 |    V   |         |
+     */
+    const { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // add 3 roles
+    let res = [];
+    for (const i of Array(3).keys()) {
+      res.push(await makeAddRole(access, owner, "Role" + (i + 1).toString()));
+    }
+
+    // make 3 times role datas binding same parameters [Role0-Func1, Role0-Func1, Role0-Func1]
+    let roleDatas = [];
+    for (const i of Array(3).keys()) {
+      roleDatas.push({ target: mockProtocol.address, selector: selectors[0], roleId: res[0].roleId.toString() });
+    }
+
+    let resBindRoles = await makeBindRoles(access, owner, roleDatas);
+
+    // only 1 event for only 1 role bound
+    expect(resBindRoles.roleIds.length).to.be.eq(1);
+    expect(resBindRoles.roleIds[0]).to.be.eq(res[0].roleId);
   });
 });

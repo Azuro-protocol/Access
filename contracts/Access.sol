@@ -109,7 +109,12 @@ contract Access is
         uint8 roleId
     ) external onlyOwner {
         bytes32 funcId = _getFunctionId(target, selector);
-        functionRoles[funcId] = functionRoles[funcId] & ~(1 << roleId);
+        uint256 oldRole = functionRoles[funcId];
+        uint256 newRole = oldRole & ~(1 << roleId);
+
+        if (oldRole == newRole) return;
+
+        functionRoles[funcId] = newRole;
         emit RoleUnbound(funcId, roleId);
     }
 
@@ -161,7 +166,12 @@ contract Access is
 
     function _bindRole(RoleData calldata role) internal {
         bytes32 funcId = _getFunctionId(role.target, role.selector);
-        functionRoles[funcId] = functionRoles[funcId] | (1 << role.roleId);
+        uint256 oldRole = functionRoles[funcId];
+        uint256 newRole = oldRole | (1 << role.roleId);
+
+        if (oldRole == newRole) return;
+
+        functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
     }
 
