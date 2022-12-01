@@ -23,6 +23,11 @@ describe("Access", function () {
     access = await upgrades.deployProxy(Access, ["Access NFT token", "AccNFT"]);
     await access.deployed();
 
+    // try initialize again
+    await expect(access.initialize("Access NFT token", "AccNFT")).to.be.revertedWith(
+      "Initializable: contract is already initialized"
+    );
+
     const MockProtocol = await ethers.getContractFactory("MockProtocol");
     mockProtocol = await MockProtocol.deploy(access.address);
 
@@ -580,6 +585,11 @@ describe("Access", function () {
     await mockProtocol.connect(user1).externalAccFunc2(1);
     await mockProtocol.connect(user2).externalAccFunc1(1);
     await mockProtocol.connect(user3).externalAccFunc3(1);
+
+    // Some User (not owner) try to burn user3 token
+    await expect(access.connect(user1).burnToken(resGranted[2].tokenId)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
 
     // Admin (owner) burn access tokens from User1, User2, User3
     for (const i of Array(3).keys()) {
