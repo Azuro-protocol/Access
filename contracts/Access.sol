@@ -56,16 +56,14 @@ contract Access is Ownable, ERC721Burnable, IAccessBase {
     }
 
     /**
-     * @notice get function Id from contract-function
-     * @param  target smart contract address
-     * @param  selector function selector
-     * @return function id
+     * @notice grant access role for user
+     * @param  user grant for user
+     * @param  roleId grant role id
      */
-    function getFunctionId(
-        address target,
-        bytes4 selector
-    ) external pure returns (bytes32) {
-        return _getFunctionId(target, selector);
+    function grantRole(address user, uint8 roleId) external onlyOwner {
+        uint256 _nextTokenId = nextTokenId++;
+        tokenRoles[_nextTokenId] = roleId;
+        _safeMint(user, _nextTokenId);
     }
 
     /**
@@ -116,14 +114,16 @@ contract Access is Ownable, ERC721Burnable, IAccessBase {
     }
 
     /**
-     * @notice grant access role for user
-     * @param  user grant for user
-     * @param  roleId grant role id
+     * @notice get function Id from contract-function
+     * @param  target smart contract address
+     * @param  selector function selector
+     * @return function id
      */
-    function grantRole(address user, uint8 roleId) external onlyOwner {
-        uint256 _nextTokenId = nextTokenId++;
-        tokenRoles[_nextTokenId] = roleId;
-        _safeMint(user, _nextTokenId);
+    function getFunctionId(
+        address target,
+        bytes4 selector
+    ) external pure returns (bytes32) {
+        return _getFunctionId(target, selector);
     }
 
     function _afterTokenTransfer(
