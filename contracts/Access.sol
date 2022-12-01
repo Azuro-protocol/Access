@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./interface/IAccessBase.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interface/IAccess.sol";
+import "./interface/IAccessMetadata.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
+contract Access is
+    OwnableUpgradeable,
+    ERC721BurnableUpgradeable,
+    IAccessMetadata,
+    IAccess
+{
     uint256 public nextRole;
     uint256 public nextTokenId;
 
@@ -21,10 +26,13 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
     // tokens - roles
     mapping(uint256 => uint8) public tokenRoles;
 
-    constructor(
+    function initialize(
         string memory name_,
         string memory symbol_
-    ) ERC721(name_, symbol_) {}
+    ) external initializer {
+        __Ownable_init_unchained();
+        __ERC721_init(name_, symbol_);
+    }
 
     /**
      * @notice add new role
@@ -39,17 +47,17 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
 
     /**
      * @notice bind access role to contract-function
-     * @param  role structure parameter roleData {target, selector, roleId}
+     * @param  role structure parameter RoleData {target, selector, roleId}
      */
-    function bindRole(roleData calldata role) external onlyOwner {
+    function bindRole(RoleData calldata role) external onlyOwner {
         _bindRole(role);
     }
 
     /**
      * @notice bind access role to contract-function by provided list
-     * @param  roleDatas list of structure roleData {target, selector, roleId}
+     * @param  roleDatas list of structure RoleData {target, selector, roleId}
      */
-    function bindRoles(roleData[] calldata roleDatas) external onlyOwner {
+    function bindRoles(RoleData[] calldata roleDatas) external onlyOwner {
         uint256 roleCount = roleDatas.length;
         for (uint256 index = 0; index < roleCount; index++) {
             _bindRole(roleDatas[index]);
@@ -57,16 +65,22 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
     }
 
     /**
-     * @notice get function Id from contract-function
-     * @param  target smart contract address
-     * @param  selector function selector
-     * @return function id
+     * @notice revoke access token from user by its burning
+     * @param  tokenId role token id to be burned
      */
-    function getFunctionId(
-        address target,
-        bytes4 selector
-    ) external pure returns (bytes32) {
-        return _getFunctionId(target, selector);
+    function burnToken(uint256 tokenId) external onlyOwner {
+        _burn(tokenId);
+    }
+
+    /**
+     * @notice grant access role for user
+     * @param  user grant for user
+     * @param  roleId grant role id
+     */
+    function grantRole(address user, uint8 roleId) external onlyOwner {
+        uint256 _nextTokenId = nextTokenId++;
+        tokenRoles[_nextTokenId] = roleId;
+        _safeMint(user, _nextTokenId);
     }
 
     /**
@@ -95,7 +109,12 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
         uint8 roleId
     ) external onlyOwner {
         bytes32 funcId = _getFunctionId(target, selector);
-        functionRoles[funcId] = functionRoles[funcId] & ~(1 << roleId);
+        uint256 oldRole = functionRoles[funcId];
+        uint256 newRole = oldRole & ~(1 << roleId);
+
+        if (oldRole == newRole) return;
+
+        functionRoles[funcId] = newRole;
         emit RoleUnbound(funcId, roleId);
     }
 
@@ -117,14 +136,16 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
     }
 
     /**
-     * @notice grant access role for user
-     * @param  user grant for user
-     * @param  roleId grant role id
+     * @notice get function Id from contract-function
+     * @param  target smart contract address
+     * @param  selector function selector
+     * @return function id
      */
-    function grantRole(address user, uint8 roleId) external onlyOwner {
-        uint256 _nextTokenId = nextTokenId++;
-        tokenRoles[_nextTokenId] = roleId;
-        _safeMint(user, _nextTokenId);
+    function getFunctionId(
+        address target,
+        bytes4 selector
+    ) external pure returns (bytes32) {
+        return _getFunctionId(target, selector);
     }
 
     function _afterTokenTransfer(
@@ -136,16 +157,21 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
         uint8 roleId = tokenRoles[firstTokenId];
         // not burn
         if (to != address(0)) {
-            if (_roleExists(to, roleId)) revert RoleAlreadyGranted();
+            if (_roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
         // not mint
         if (from != address(0)) _revokeRole(from, roleId);
     }
 
-    function _bindRole(roleData calldata role) internal {
+    function _bindRole(RoleData calldata role) internal {
         bytes32 funcId = _getFunctionId(role.target, role.selector);
-        functionRoles[funcId] = functionRoles[funcId] | (1 << role.roleId);
+        uint256 oldRole = functionRoles[funcId];
+        uint256 newRole = oldRole | (1 << role.roleId);
+
+        if (oldRole == newRole) return;
+
+        functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
     }
 
@@ -166,7 +192,7 @@ contract Access is Ownable, ERC721, ERC721Burnable, IAccessBase {
         emit RoleRevoked(user, roleId);
     }
 
-    function _roleExists(
+    function _roleGranted(
         address user,
         uint8 roleId
     ) public view returns (bool) {

@@ -101,6 +101,10 @@ const makeGrantRole = async (access, owner, user, roleId) => {
   return { user: res.user, roleId: res.roleId, from: tranferRes.from, to: tranferRes.to, tokenId: tranferRes.tokenId };
 };
 
+function timeout(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 module.exports = {
   getRoleAddedDetails,
   getRoleBoundDetails,
@@ -112,4 +116,5 @@ module.exports = {
   makeBindRoles,
   makeUnbindRole,
   makeGrantRole,
+  timeout,
 };
