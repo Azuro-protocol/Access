@@ -87,17 +87,17 @@ function addRole(string memory roleName)
 <em>* roleName string stored as fixed length type bytes32, so use short names to fit 32 characters (UTF-8 strings)</em>
 #### 3. Owner bind roles to *Access.sol*
 ```solidity
-struct roleData {
+struct RoleData {
   address target;
   bytes4 selector;
   uint8 roleId;
 }
 
-function bindRole(roleData calldata role) external onlyOwner
+function bindRole(RoleData calldata role) external onlyOwner
 ```
 or for multiple roles
 ```solidity
-function bindRoles(roleData[] calldata roleDatas) external onlyOwner
+function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner
 ```
 #### 4. Owner grants role (mint NFT) to user
 ```solidity

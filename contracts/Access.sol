@@ -38,20 +38,20 @@ contract Access is Ownable, ERC721Burnable, IAccessBase {
 
     /**
      * @notice bind access role to contract-function
-     * @param  role structure parameter roleData {target, selector, roleId}
+     * @param  role structure parameter RoleData {target, selector, roleId}
      */
-    function bindRole(roleData calldata role) external onlyOwner {
+    function bindRole(RoleData calldata role) external onlyOwner {
         _bindRole(role);
     }
 
     /**
      * @notice bind access role to contract-function by provided list
-     * @param  roleDatas list of structure roleData {target, selector, roleId}
+     * @param  RoleDatas list of structure RoleData {target, selector, roleId}
      */
-    function bindRoles(roleData[] calldata roleDatas) external onlyOwner {
-        uint256 roleCount = roleDatas.length;
+    function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner {
+        uint256 roleCount = RoleDatas.length;
         for (uint256 index = 0; index < roleCount; index++) {
-            _bindRole(roleDatas[index]);
+            _bindRole(RoleDatas[index]);
         }
     }
 
@@ -142,7 +142,7 @@ contract Access is Ownable, ERC721Burnable, IAccessBase {
         if (from != address(0)) _revokeRole(from, roleId);
     }
 
-    function _bindRole(roleData calldata role) internal {
+    function _bindRole(RoleData calldata role) internal {
         bytes32 funcId = _getFunctionId(role.target, role.selector);
         functionRoles[funcId] = functionRoles[funcId] | (1 << role.roleId);
         emit RoleBound(funcId, role.roleId);
