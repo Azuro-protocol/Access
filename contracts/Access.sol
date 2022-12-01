@@ -26,9 +26,12 @@ contract Access is
     // tokens - roles
     mapping(uint256 => uint8) public tokenRoles;
 
-    function initialize() external virtual initializer {
+    function initialize(
+        string memory name_,
+        string memory symbol_
+    ) external initializer {
         __Ownable_init_unchained();
-        __ERC721_init("Access NFT token", "AccNFT");
+        __ERC721_init(name_, symbol_);
     }
 
     /**

@@ -20,7 +20,7 @@ describe("Access", function () {
     [owner, user1, user2, user3] = await ethers.getSigners();
 
     const Access = await ethers.getContractFactory("Access");
-    access = await upgrades.deployProxy(Access);
+    access = await upgrades.deployProxy(Access, ["Access NFT token", "AccNFT"]);
     await access.deployed();
 
     const MockProtocol = await ethers.getContractFactory("MockProtocol");
