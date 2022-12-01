@@ -55,12 +55,12 @@ contract Access is
 
     /**
      * @notice bind access role to contract-function by provided list
-     * @param  RoleDatas list of structure RoleData {target, selector, roleId}
+     * @param  roleDatas list of structure RoleData {target, selector, roleId}
      */
-    function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner {
-        uint256 roleCount = RoleDatas.length;
+    function bindRoles(RoleData[] calldata roleDatas) external onlyOwner {
+        uint256 roleCount = roleDatas.length;
         for (uint256 index = 0; index < roleCount; index++) {
-            _bindRole(RoleDatas[index]);
+            _bindRole(roleDatas[index]);
         }
     }
 
