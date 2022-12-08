@@ -26,12 +26,25 @@ contract Access is
     // tokens - roles
     mapping(uint256 => uint8) public tokenRoles;
 
+    // whitelist
+    mapping(address => bool) public whitelist;
+
     function initialize(
         string memory name_,
         string memory symbol_
     ) external initializer {
         __Ownable_init_unchained();
         __ERC721_init(name_, symbol_);
+    }
+
+    /**
+     * @notice Add to "whitelist" - allowed addresses for transferring role tokens
+     * @param adresses whitelist addresses
+     */
+    function addWhitelist(address[] calldata adresses) external onlyOwner {
+        for (uint256 i = 0; i < adresses.length; i++) {
+            whitelist[adresses[i]] = true;
+        }
     }
 
     /**
@@ -81,6 +94,15 @@ contract Access is
         uint256 _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
         _safeMint(user, _nextTokenId);
+    }
+
+    /**
+     * @notice Remove from "whitelist" - not in list addresses are not allowed for transferring role tokens
+     * @param adresses remove whitelist addresses
+     */
+    function removeWhitelist(address[] calldata adresses) external onlyOwner {
+        for (uint256 i = 0; i < adresses.length; i++)
+            delete whitelist[adresses[i]];
     }
 
     /**
@@ -155,6 +177,9 @@ contract Access is
         uint256 // unused parameter - silence warning
     ) internal virtual override {
         uint8 roleId = tokenRoles[firstTokenId];
+        // check whitelist between users only
+        if (from != address(0) && to != address(0)) _checkWhitelist(from, to);
+
         // not burn
         if (to != address(0)) {
             if (_roleGranted(to, roleId)) revert RoleAlreadyGranted();
@@ -173,6 +198,14 @@ contract Access is
 
         functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
+    }
+
+    /**
+     * @notice check `from` and `to` are in whitelist, owner by default always whitelisted
+     */
+    function _checkWhitelist(address from, address to) internal view {
+        if (from == owner()) return; // owner allowed by default
+        if (!whitelist[from] || !whitelist[to]) revert NotInWhitelist();
     }
 
     function _getFunctionId(

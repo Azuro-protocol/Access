@@ -19,4 +19,5 @@ interface IAccessMetadata {
     error MaxRolesReached();
     error AccessNotGranted();
     error RoleAlreadyGranted();
+    error NotInWhitelist();
 }

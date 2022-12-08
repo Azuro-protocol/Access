@@ -40,8 +40,6 @@ describe("Access", function () {
       funcsIdCalced.push(BigNumber.from(mockProtocol.address).shl(96).or(BigNumber.from(selectors[i])));
     }
 
-    //console.log("selectors", selectors, "funcsIdCalced", funcsIdCalced);
-
     return { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol };
   }
 
@@ -72,6 +70,16 @@ describe("Access", function () {
 
     // try unbind role from not owner
     await expect(makeUnbindRole(access, user1, mockProtocol.address, selectors[0], res.roleId)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    // try to whitelist
+    await expect(access.connect(user1).addWhitelist([user1.address, user2.address])).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    // try to remove from whitelist
+    await expect(access.connect(user1).removeWhitelist([user1.address, user2.address])).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
   });
@@ -168,8 +176,22 @@ describe("Access", function () {
     // user2 not granted function and rejected
     await expect(mockProtocol.connect(user2).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
 
+    // User1 not whitelisted and try transfer Role0 -> User2
+    await expect(
+      access.connect(user1).transferFrom(user1.address, user2.address, resGranted.tokenId)
+    ).to.be.rejectedWith("NotInWhitelist()");
+
+    // add User1 to whitelist and try transfer Role0 -> User2, rejected User2 not whitelisted
+    await access.addWhitelist([user1.address]);
+    await expect(
+      access.connect(user1).transferFrom(user1.address, user2.address, resGranted.tokenId)
+    ).to.be.rejectedWith("NotInWhitelist()");
+
+    // add User2 to whitelist
+    await access.addWhitelist([user2.address]);
+
     // User1 transfer Role0 -> User2
-    await access.connect(user1).transferFrom(user1.address, user2.address, resGranted.tokenId);
+    access.connect(user1).transferFrom(user1.address, user2.address, resGranted.tokenId);
 
     // user1 not granted function and rejected
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
@@ -393,6 +415,20 @@ describe("Access", function () {
     // user3 has not granted function
     await expect(mockProtocol.connect(user3).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
 
+    // User1, User2 whitelisted
+    await access.addWhitelist([user1.address, user2.address, user3.address]);
+
+    // remove User2 from whitelist
+    await access.removeWhitelist([user2.address]);
+
+    // user1 try transfer Role0 -> user2, User2 not in whitelist
+    await expect(
+      access.connect(user1).transferFrom(user1.address, user2.address, resGranted1.tokenId)
+    ).to.be.rejectedWith("NotInWhitelist()");
+
+    // User2 whitelisted
+    await access.addWhitelist([user2.address]);
+
     // user1 try transfer Role0 -> user2
     await expect(
       access.connect(user1).transferFrom(user1.address, user2.address, resGranted1.tokenId)
@@ -493,9 +529,12 @@ describe("Access", function () {
     await expect(mockProtocol.connect(user3).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
 
+    // User1, User2, User3 to whitelist, allow transfers
+    await access.addWhitelist([user1.address, user2.address, user3.address]);
+
     // User2, User3 pass its role tokens to User1
-    access.connect(user2).transferFrom(user2.address, user1.address, resGranted[1].tokenId);
-    access.connect(user3).transferFrom(user3.address, user1.address, resGranted[2].tokenId);
+    await access.connect(user2).transferFrom(user2.address, user1.address, resGranted[1].tokenId);
+    await access.connect(user3).transferFrom(user3.address, user1.address, resGranted[2].tokenId);
 
     // user1 granted to functions 1,2,3
     await mockProtocol.connect(user1).externalAccFunc1(1);
@@ -512,7 +551,6 @@ describe("Access", function () {
     await expect(mockProtocol.connect(user3).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
   });
-  // burn(uint256 tokenId)
   it("check granted user accessed only to functions with role access, not granted user has no access, admin burn all franted tokens", async () => {
     /**
       Bind functions to roles
@@ -636,5 +674,38 @@ describe("Access", function () {
     // only 1 event for only 1 role bound
     expect(resBindRoles.roleIds.length).to.be.eq(1);
     expect(resBindRoles.roleIds[0]).to.be.eq(res[0].roleId);
+  });
+  it("check admin whitelisted by default", async () => {
+    const { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // add role
+    let res = await makeAddRole(access, owner, "Role0");
+
+    // make role datas binding parameters Role0-Func1, Role1-Func2, Role2-Func3 to
+    let roleDatas = [];
+    roleDatas.push({ target: mockProtocol.address, selector: selectors[0], roleId: res.roleId.toString() });
+
+    // bindRole
+    await makeBindRoles(access, owner, roleDatas);
+
+    // owner not granted
+    await expect(mockProtocol.connect(owner).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+
+    // add rights to owner
+    let resGranted = await makeGrantRole(access, owner, owner, res.roleId);
+
+    // owner has granted function
+    await mockProtocol.connect(owner).externalAccFunc1(1);
+
+    // owner not whitelisted transfer role tokento user 1
+    await access.connect(owner).transferFrom(owner.address, user1.address, resGranted.tokenId);
+
+    // user1 has granted function
+    await mockProtocol.connect(user1).externalAccFunc1(1);
+
+    // owner not granted
+    await expect(mockProtocol.connect(owner).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
   });
 });
