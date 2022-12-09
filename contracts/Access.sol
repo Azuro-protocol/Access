@@ -26,7 +26,6 @@ contract Access is
     // tokens - roles
     mapping(uint256 => uint8) public tokenRoles;
 
-    // whitelist
     mapping(address => bool) public whitelist;
 
     function initialize(
