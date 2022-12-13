@@ -637,4 +637,87 @@ describe("Access", function () {
     expect(resBindRoles.roleIds.length).to.be.eq(1);
     expect(resBindRoles.roleIds[0]).to.be.eq(res[0].roleId);
   });
+  it("Bind different roles to one func, grant roles, unbind one role from func, check access", async () => {
+    /**
+      Bind functions to roles
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      Func1 |    V   |    V    |    V
+      
+      User granted roles
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      User1 |        |    V    |         
+      User2 |    V   |         |         
+      User3 |        |         |    V
+
+
+      func1 user access         
+      ------+--------+----------
+            |  Role0 |  Granted 
+      ------+--------+----------
+      User1 |    V   |    Yes   
+      User2 |    V   |    Yes   
+      User3 |    V   |    Yes   
+
+      Admin unbind Role1 from Func1
+
+      Bind functions to roles
+      ------+--------+---------+---------
+            |  Role0 |  Role1  |  Role2
+      ------+--------+---------+---------
+      Func1 |    V   |         |    V
+
+      func1 user access         
+      ------+--------+----------
+            |  Role0 |  Granted 
+      ------+--------+----------
+      User1 |        |    No
+      User2 |    V   |    Yes   
+      User3 |    V   |    Yes   
+
+     */
+    const { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // add roles
+    let res = [];
+    for (const i of Array(3).keys()) {
+      res.push(await makeAddRole(access, owner, "Role" + (i + 1).toString()));
+    }
+
+    // make role datas binding parameters Role0-Func1, Role1-Func1, Role2-Func1
+    let roleDatas = [];
+    for (const i of Array(3).keys()) {
+      roleDatas.push({ target: mockProtocol.address, selector: selectors[0], roleId: res[i].roleId.toString() });
+    }
+
+    // bind roles
+    let resBindRoles = await makeBindRoles(access, owner, roleDatas);
+    let func0Id =  funcsIdCalced[0].toHexString();
+    for (const i of Array(3).keys()) {
+      expect(resBindRoles.funcIds[i]).to.be.eq(func0Id);
+    }    
+
+    // add rights    
+    await makeGrantRole(access, owner, user1, res[1].roleId); // role 1
+    await makeGrantRole(access, owner, user2, res[0].roleId); // role 0
+    await makeGrantRole(access, owner, user3, res[2].roleId); // role 2
+
+    // user1 and user2 has granted to function Func1
+    await mockProtocol.connect(user1).externalAccFunc1(1);
+    await mockProtocol.connect(user2).externalAccFunc1(1);
+    await mockProtocol.connect(user3).externalAccFunc1(1);
+    
+    // unbind Role1
+    await makeUnbindRole(access, owner, mockProtocol.address, selectors[0], res[1].roleId);
+
+    // User1 no access, User2 and User3 has access
+    await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+    await mockProtocol.connect(user2).externalAccFunc1(1);
+    await mockProtocol.connect(user3).externalAccFunc1(1);
+  });
 });
