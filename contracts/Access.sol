@@ -51,8 +51,7 @@ contract Access is
      */
     function addRole(string calldata roleName) external onlyOwner {
         if (nextRole > type(uint8).max) revert MaxRolesReached();
-        _checkRoleName(roleName);
-        bytes32 _role = bytes32(bytes(roleName));
+        bytes32 _role = _roleNameToBytes(roleName);
         roles[nextRole] = _role;
         emit RoleAdded(_role, nextRole++);
     }
@@ -92,8 +91,7 @@ contract Access is
         uint8 roleId,
         string calldata roleName
     ) external onlyOwner {
-        _checkRoleName(roleName);
-        bytes32 _role = bytes32(bytes(roleName));
+        bytes32 _role = _roleNameToBytes(roleName);
         roles[roleId] = _role;
         emit RoleRenamed(_role, roleId);
     }
@@ -192,10 +190,6 @@ contract Access is
         emit RoleBound(funcId, role.roleId);
     }
 
-    function _checkRoleName(string calldata roleName) internal {
-        if (bytes(roleName).length > 32) revert TooBigRoleName();
-    }
-
     /**
      * @notice Grant role `roleId` to `account`.
      */
@@ -210,5 +204,15 @@ contract Access is
     function _revokeRole(address account, uint8 roleId) internal {
         userRoles[account] = userRoles[account] & ~(1 << roleId);
         emit RoleRevoked(account, roleId);
+    }
+
+    /**
+     * @notice Convert string `roleName` to bytes32.
+     */
+    function _roleNameToBytes(
+        string calldata roleName
+    ) internal view returns (bytes32) {
+        if (bytes(roleName).length > 32) revert TooBigRoleName();
+        return bytes32(bytes(roleName));
     }
 }
