@@ -51,7 +51,7 @@ contract Access is
      */
     function addRole(string calldata roleName) external onlyOwner {
         if (nextRole > type(uint8).max) revert MaxRolesReached();
-        if (bytes(roleName).length > 32) revert TooBigRoleName();
+        _checkRoleName(roleName);
         bytes32 _role = bytes32(bytes(roleName));
         roles[nextRole] = _role;
         emit RoleAdded(_role, nextRole++);
@@ -92,7 +92,7 @@ contract Access is
         uint8 roleId,
         string calldata roleName
     ) external onlyOwner {
-        if (bytes(roleName).length > 32) revert TooBigRoleName();
+        _checkRoleName(roleName);
         bytes32 _role = bytes32(bytes(roleName));
         roles[roleId] = _role;
         emit RoleRenamed(_role, roleId);
@@ -190,6 +190,10 @@ contract Access is
 
         functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
+    }
+
+    function _checkRoleName(string calldata roleName) internal {
+        if (bytes(roleName).length > 32) revert TooBigRoleName();
     }
 
     /**
