@@ -4,9 +4,9 @@ pragma solidity ^0.8.17;
 
 interface IAccessMetadata {
     struct RoleData {
-        address target;
-        bytes4 selector;
-        uint8 roleId;
+        address target; // target contract address
+        bytes4 selector; // target function selector
+        uint8 roleId; // ID of the role associated with contract-function combination
     }
 
     event RoleAdded(bytes32 role, uint256 roleId);
@@ -17,6 +17,7 @@ interface IAccessMetadata {
     event RoleRevoked(address user, uint8 roleId);
 
     error MaxRolesReached();
+    error TooBigRoleName();
     error AccessNotGranted();
     error RoleAlreadyGranted();
 }
