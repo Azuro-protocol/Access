@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
 
 import "./interface/IAccess.sol";
@@ -6,6 +6,7 @@ import "./interface/IAccessMetadata.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+/// @title Azuro Access token helps manage access to sensitive contract functionality.
 contract Access is
     OwnableUpgradeable,
     ERC721BurnableUpgradeable,
@@ -15,16 +16,25 @@ contract Access is
     uint256 public nextRole;
     uint256 public nextTokenId;
 
+    // Mapping from role ID to role name
     mapping(uint256 => bytes32) public roles;
 
-    // function's binded roles
+    // Mapping from token ID to role ID
+    mapping(uint256 => uint8) public tokenRoles;
+
+    /*
+     * @notice Mapping from function ID to vector of role IDs the function is included in.
+     * @notice Every role represented by bit in 256 bits (32 bytes) role vector.
+     *         Access is granted by matching bits of role vectors associated with caller and called function.
+     */
     mapping(bytes32 => uint256) public functionRoles;
 
-    // user's granted roles
+    /*
+     * @notice Mapping from account to vector of role IDs the account is associated with.
+     * @notice Every role represented by bit in 256 bits (32 bytes) access vector.
+     *         Access is granted by matching bits of role vectors associated with caller and called function.
+     */
     mapping(address => uint256) public userRoles;
-
-    // tokens - roles
-    mapping(uint256 => uint8) public tokenRoles;
 
     function initialize(
         string memory name_,
@@ -35,119 +45,120 @@ contract Access is
     }
 
     /**
-     * @notice add new role
-     * @param  roleName role name, string stored as fixed length type bytes32, so use short names to fit 32 characters (UTF-8 strings)
+     * @notice Register new role `roleName`.
+     * @notice Warning: the number of possible roles in one implementation is limited to 256.
+     * @param  roleName role name is stored as bytes32 type, so use short name to fit 32 bytes with UTF-8 encoding.
      */
-    function addRole(string memory roleName) external onlyOwner {
+    function addRole(string calldata roleName) external onlyOwner {
         if (nextRole > type(uint8).max) revert MaxRolesReached();
-        bytes32 _role = bytes32(bytes(roleName));
+        bytes32 _role = _roleNameToBytes(roleName);
         roles[nextRole] = _role;
         emit RoleAdded(_role, nextRole++);
     }
 
     /**
-     * @notice bind access role to contract-function
-     * @param  role structure parameter RoleData {target, selector, roleId}
+     * @notice Bind role with contract-function.
+     * @notice See {_bindRole}.
      */
-    function bindRole(RoleData calldata role) external onlyOwner {
-        _bindRole(role);
+    function bindRole(RoleData calldata roleData) external onlyOwner {
+        _bindRole(roleData);
     }
 
     /**
-     * @notice bind access role to contract-function by provided list
-     * @param  roleDatas list of structure RoleData {target, selector, roleId}
+     * @notice Bind role with contract-function by provided list.
+     * @param  rolesData array. See {IAccess-RoleData}
      */
-    function bindRoles(RoleData[] calldata roleDatas) external onlyOwner {
-        uint256 roleCount = roleDatas.length;
-        for (uint256 index = 0; index < roleCount; index++) {
-            _bindRole(roleDatas[index]);
+    function bindRoles(RoleData[] calldata rolesData) external onlyOwner {
+        uint256 rolesCount = rolesData.length;
+        for (uint256 index = 0; index < rolesCount; index++) {
+            _bindRole(rolesData[index]);
         }
     }
 
     /**
-     * @notice revoke access token from user by its burning
-     * @param  tokenId role token id to be burned
+     * @notice Grant role `roleId` to `account`.
      */
-    function burnToken(uint256 tokenId) external onlyOwner {
-        _burn(tokenId);
-    }
-
-    /**
-     * @notice grant access role for user
-     * @param  user grant for user
-     * @param  roleId grant role id
-     */
-    function grantRole(address user, uint8 roleId) external onlyOwner {
+    function grantRole(address account, uint8 roleId) external onlyOwner {
         uint256 _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
-        _safeMint(user, _nextTokenId);
+        _mint(account, _nextTokenId);
     }
 
     /**
-     * @notice rename access role
-     * @param  roleName new role name
-     * @param  roleId role id
+     * @notice Change role `roleId` name to `roleName`.
      */
     function renameRole(
-        string memory roleName,
-        uint8 roleId
+        uint8 roleId,
+        string calldata roleName
     ) external onlyOwner {
-        bytes32 _role = bytes32(bytes(roleName));
+        bytes32 _role = _roleNameToBytes(roleName);
         roles[roleId] = _role;
         emit RoleRenamed(_role, roleId);
     }
 
     /**
-     * @notice unbind access role from contract-function
-     * @param  target smart contract address
-     * @param  selector function selector
-     * @param  roleId role id
+     * @notice Unbind role from contract-function.
+     * @notice See {IAccess-RoleData}.
      */
-    function unbindRole(
-        address target,
-        bytes4 selector,
-        uint8 roleId
-    ) external onlyOwner {
-        bytes32 funcId = _getFunctionId(target, selector);
+    function unbindRole(RoleData calldata roleData) external onlyOwner {
+        bytes32 funcId = getFunctionId(roleData.target, roleData.selector);
         uint256 oldRole = functionRoles[funcId];
-        uint256 newRole = oldRole & ~(1 << roleId);
+        uint256 newRole = oldRole & ~(1 << roleData.roleId);
 
         if (oldRole == newRole) return;
 
         functionRoles[funcId] = newRole;
-        emit RoleUnbound(funcId, roleId);
+        emit RoleUnbound(funcId, roleData.roleId);
     }
 
     /**
-     * @notice sender check access for contract-selector by granted group
-     * @param  sender sender account
-     * @param  target smart contract to check access
-     * @param  selector function selector to check access
+     * @notice Throw if `account` have no access to function with selector `selector` of contract `target`.
      */
     function checkAccess(
-        address sender,
+        address account,
         address target,
         bytes4 selector
     ) external view override {
         if (
-            (functionRoles[_getFunctionId(target, selector)] &
-                userRoles[sender]) == 0
+            (functionRoles[getFunctionId(target, selector)] &
+                userRoles[account]) == 0
         ) revert AccessNotGranted();
     }
 
     /**
-     * @notice get function Id from contract-function
-     * @param  target smart contract address
-     * @param  selector function selector
-     * @return function id
+     * @notice Revoke a role from account by burning role token.
+     * @notice every account can calling ERC721BurnableUpgradeable.burn() - it's owned token
+     * @notice See {ERC721BurnableUpgradeable-_burn}.
+     */
+    function burnToken(uint256 tokenId) public onlyOwner {
+        _burn(tokenId);
+    }
+
+    /**
+     * @notice Check if account `account` have role `roleId`.
+     */
+    function roleGranted(
+        address account,
+        uint8 roleId
+    ) public view returns (bool) {
+        uint256 roleBit = 1 << roleId;
+        return userRoles[account] & roleBit == roleBit;
+    }
+
+    /**
+     * @notice Get ID of function with selector `selector` of contract `target`.
      */
     function getFunctionId(
         address target,
         bytes4 selector
-    ) external pure returns (bytes32) {
-        return _getFunctionId(target, selector);
+    ) public pure returns (bytes32) {
+        return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
     }
 
+    /**
+     * @dev Hook that is called after any (single) transfer of tokens. This includes minting and burning.
+     * See {ERC721BurnableUpgradeable-_afterTokenTransfer}.
+     */
     function _afterTokenTransfer(
         address from,
         address to,
@@ -157,15 +168,19 @@ contract Access is
         uint8 roleId = tokenRoles[firstTokenId];
         // not burn
         if (to != address(0)) {
-            if (_roleGranted(to, roleId)) revert RoleAlreadyGranted();
+            if (roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
         // not mint
         if (from != address(0)) _revokeRole(from, roleId);
     }
 
+    /**
+     * @notice Bind role with contract-function.
+     * @param  role see {IAccess.RoleData}
+     */
     function _bindRole(RoleData calldata role) internal {
-        bytes32 funcId = _getFunctionId(role.target, role.selector);
+        bytes32 funcId = getFunctionId(role.target, role.selector);
         uint256 oldRole = functionRoles[funcId];
         uint256 newRole = oldRole | (1 << role.roleId);
 
@@ -175,28 +190,29 @@ contract Access is
         emit RoleBound(funcId, role.roleId);
     }
 
-    function _getFunctionId(
-        address target,
-        bytes4 selector
-    ) internal pure returns (bytes32) {
-        return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
+    /**
+     * @notice Grant role `roleId` to `account`.
+     */
+    function _grantRole(address account, uint8 roleId) internal {
+        userRoles[account] = userRoles[account] | (1 << roleId);
+        emit RoleGranted(account, roleId);
     }
 
-    function _grantRole(address user, uint8 roleId) internal {
-        userRoles[user] = userRoles[user] | (1 << roleId);
-        emit RoleGranted(user, roleId);
+    /**
+     * @notice Revoke a role `roleId` from account `account`.
+     */
+    function _revokeRole(address account, uint8 roleId) internal {
+        userRoles[account] = userRoles[account] & ~(1 << roleId);
+        emit RoleRevoked(account, roleId);
     }
 
-    function _revokeRole(address user, uint8 roleId) internal {
-        userRoles[user] = userRoles[user] & ~(1 << roleId);
-        emit RoleRevoked(user, roleId);
-    }
-
-    function _roleGranted(
-        address user,
-        uint8 roleId
-    ) public view returns (bool) {
-        uint256 roleBit = 1 << roleId;
-        return userRoles[user] & roleBit == roleBit;
+    /**
+     * @notice Convert string `roleName` to bytes32.
+     */
+    function _roleNameToBytes(
+        string calldata roleName
+    ) internal view returns (bytes32) {
+        if (bytes(roleName).length > 32) revert TooBigRoleName();
+        return bytes32(bytes(roleName));
     }
 }

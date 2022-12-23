@@ -71,7 +71,7 @@ const makeAddRole = async (access, owner, roleName) => {
 };
 
 const makeRenameRole = async (access, owner, roleId, newRoleName) => {
-  let txAdd = await access.connect(owner).renameRole(newRoleName, roleId);
+  let txAdd = await access.connect(owner).renameRole(roleId, newRoleName);
   let res = await getRoleRenamedDetails(txAdd);
   return { role: res.role, roleId: res.roleId };
 };
@@ -89,7 +89,7 @@ const makeBindRoles = async (access, owner, roleDatas) => {
 };
 
 const makeUnbindRole = async (access, owner, contract, selector, roleId) => {
-  let txAdd = await access.connect(owner).unbindRole(contract, selector, roleId);
+  let txAdd = await access.connect(owner).unbindRole({ target: contract, selector: selector, roleId: roleId });
   let res = await getRoleUnboundDetails(txAdd);
   return { funcId: res.funcId, roleId: res.roleId };
 };

@@ -76,6 +76,26 @@ describe("Access", function () {
     );
   });
 
+  it("try big role names", async () => {
+    const { owner, user1, user2, _, selectors, funcIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // try add role with name more than 32 chars
+    await expect(makeAddRole(access, owner, "Role567890Role567890Role567890123")).to.be.revertedWithCustomError(
+      access,
+      "TooBigRoleName"
+    );
+
+    // add 32 length name role
+    let newRole = await makeAddRole(access, owner, "Role567890Role567890Role56789012");
+
+    // try rename role with name more than 32 chars
+    await expect(
+      makeRenameRole(access, owner, newRole.roleId, "Role567890Role567890Role567890123")
+    ).to.be.revertedWithCustomError(access, "TooBigRoleName");
+  });
+
   it("check granted user accessed to function, not granted user has no access", async () => {
     /**
       User granted roles
@@ -259,7 +279,9 @@ describe("Access", function () {
     expect(resUnbind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
 
     // unbind Role0 again - nothing happend
-    let resUnbindRepeatedTx = await access.connect(owner).unbindRole(mockProtocol.address, selectors[0], res.roleId);
+    let resUnbindRepeatedTx = await access
+      .connect(owner)
+      .unbindRole({ target: mockProtocol.address, selector: selectors[0], roleId: res.roleId });
     expect((await resUnbindRepeatedTx.wait()).events.length).to.be.eq(0);
 
     // user1, user2 has not granted to func1
@@ -697,12 +719,12 @@ describe("Access", function () {
 
     // bind roles
     let resBindRoles = await makeBindRoles(access, owner, roleDatas);
-    let func0Id =  funcsIdCalced[0].toHexString();
+    let func0Id = funcsIdCalced[0].toHexString();
     for (const i of Array(3).keys()) {
       expect(resBindRoles.funcIds[i]).to.be.eq(func0Id);
-    }    
+    }
 
-    // add rights    
+    // add rights
     await makeGrantRole(access, owner, user1, res[1].roleId); // role 1
     await makeGrantRole(access, owner, user2, res[0].roleId); // role 0
     await makeGrantRole(access, owner, user3, res[2].roleId); // role 2
@@ -711,7 +733,7 @@ describe("Access", function () {
     await mockProtocol.connect(user1).externalAccFunc1(1);
     await mockProtocol.connect(user2).externalAccFunc1(1);
     await mockProtocol.connect(user3).externalAccFunc1(1);
-    
+
     // unbind Role1
     await makeUnbindRole(access, owner, mockProtocol.address, selectors[0], res[1].roleId);
 
