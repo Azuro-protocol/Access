@@ -9,12 +9,12 @@ interface IAccessMetadata {
         uint8 roleId; // ID of the role associated with contract-function combination
     }
 
-    event RoleAdded(bytes32 indexed role, uint256 roleId);
-    event RoleRenamed(bytes32 indexed role, uint256 roleId);
-    event RoleBound(bytes32 indexed funcId, uint8 roleId);
-    event RoleUnbound(bytes32 indexed funcId, uint8 roleId);
-    event RoleGranted(address indexed user, uint8 roleId);
-    event RoleRevoked(address indexed user, uint8 roleId);
+    event RoleAdded(bytes32 indexed role, uint256 indexed roleId);
+    event RoleRenamed(bytes32 indexed role, uint8 indexed roleId);
+    event RoleBound(bytes32 indexed funcId, uint8 indexed roleId);
+    event RoleUnbound(bytes32 indexed funcId, uint8 indexed roleId);
+    event RoleGranted(address indexed user, uint8 indexed roleId);
+    event RoleRevoked(address indexed user, uint8 indexed roleId);
 
     error MaxRolesReached();
     error TooBigRoleName();
