@@ -3,13 +3,13 @@ pragma solidity ^0.8.17;
 
 import "./interface/IAccess.sol";
 import "./interface/IAccessMetadata.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title Azuro Access token helps manage access to sensitive contract functionality.
 contract Access is
     OwnableUpgradeable,
-    ERC721BurnableUpgradeable,
+    ERC721EnumerableUpgradeable,
     IAccessMetadata,
     IAccess
 {
@@ -76,6 +76,15 @@ contract Access is
     }
 
     /**
+     * @notice Revoke a role from account by burning role token.
+     * @notice every account can calling ERC721BurnableUpgradeable.burn() - it's owned token
+     * @notice See {ERC721BurnableUpgradeable-_burn}.
+     */
+    function burnToken(uint256 tokenId) public onlyOwner {
+        _burn(tokenId);
+    }
+
+    /**
      * @notice Grant role `roleId` to `account`.
      */
     function grantRole(address account, uint8 roleId) external onlyOwner {
@@ -112,6 +121,22 @@ contract Access is
     }
 
     /**
+     * @dev Burns `tokenId`. See {ERC721-_burn}.
+     *
+     * Requirements:
+     *
+     * - The caller must own `tokenId` or be an approved operator.
+     */
+    function burn(uint256 tokenId) public virtual {
+        //solhint-disable-next-line max-line-length
+        require(
+            _isApprovedOrOwner(_msgSender(), tokenId),
+            "ERC721: caller is not token owner or approved"
+        );
+        _burn(tokenId);
+    }
+
+    /**
      * @notice Throw if `account` have no access to function with selector `selector` of contract `target`.
      */
     function checkAccess(
@@ -123,15 +148,6 @@ contract Access is
             (functionRoles[getFunctionId(target, selector)] &
                 userRoles[account]) == 0
         ) revert AccessNotGranted();
-    }
-
-    /**
-     * @notice Revoke a role from account by burning role token.
-     * @notice every account can calling ERC721BurnableUpgradeable.burn() - it's owned token
-     * @notice See {ERC721BurnableUpgradeable-_burn}.
-     */
-    function burnToken(uint256 tokenId) public onlyOwner {
-        _burn(tokenId);
     }
 
     /**
@@ -211,7 +227,7 @@ contract Access is
      */
     function _roleNameToBytes(
         string calldata roleName
-    ) internal view returns (bytes32) {
+    ) internal pure returns (bytes32) {
         if (bytes(roleName).length > 32) revert TooBigRoleName();
         return bytes32(bytes(roleName));
     }
