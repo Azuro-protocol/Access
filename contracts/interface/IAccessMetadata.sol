@@ -16,6 +16,7 @@ interface IAccessMetadata {
     event RoleGranted(address indexed user, uint8 indexed roleId);
     event RoleRevoked(address indexed user, uint8 indexed roleId);
 
+    error NotTokenOwner();
     error MaxRolesReached();
     error TooBigRoleName();
     error AccessNotGranted();
