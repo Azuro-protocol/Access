@@ -76,15 +76,6 @@ contract Access is
     }
 
     /**
-     * @notice Revoke a role from account by burning role token.
-     * @notice every account can calling ERC721BurnableUpgradeable.burn() - it's owned token
-     * @notice See {ERC721BurnableUpgradeable-_burn}.
-     */
-    function burnToken(uint256 tokenId) public onlyOwner {
-        _burn(tokenId);
-    }
-
-    /**
      * @notice Grant role `roleId` to `account`.
      */
     function grantRole(address account, uint8 roleId) external onlyOwner {
@@ -122,17 +113,13 @@ contract Access is
 
     /**
      * @dev Burns `tokenId`. See {ERC721-_burn}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
+     * - The caller must own `tokenId` or be an approved operator or access owner.
      */
     function burn(uint256 tokenId) public virtual {
-        //solhint-disable-next-line max-line-length
-        require(
-            _isApprovedOrOwner(_msgSender(), tokenId),
-            "ERC721: caller is not token owner or approved"
-        );
+        if (
+            !_isApprovedOrOwner(_msgSender(), tokenId) &&
+            !(owner() == _msgSender())
+        ) revert NotTokenOwner();
         _burn(tokenId);
     }
 

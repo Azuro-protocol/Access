@@ -231,9 +231,7 @@ describe("Access", function () {
     await mockProtocol.connect(user1).externalAccFunc1(1);
 
     // Some user2 try burn user1's token
-    await expect(access.connect(user2).burn(resGranted.tokenId)).to.be.revertedWith(
-      "ERC721: caller is not token owner or approved"
-    );
+    await expect(access.connect(user2).burn(resGranted.tokenId)).to.be.rejectedWith("NotTokenOwner()");
 
     // User1 burns acces token (Role0)
     await access.connect(user1).burn(resGranted.tokenId);
@@ -614,13 +612,11 @@ describe("Access", function () {
     await mockProtocol.connect(user3).externalAccFunc3(1);
 
     // Some User (not owner) try to burn user3 token
-    await expect(access.connect(user1).burnToken(resGranted[2].tokenId)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(access.connect(user1).burn(resGranted[2].tokenId)).to.be.rejectedWith("NotTokenOwner()");
 
     // Admin (owner) burn access tokens from User1, User2, User3
     for (const i of Array(3).keys()) {
-      await access.connect(owner).burnToken(resGranted[i].tokenId);
+      await access.connect(owner).burn(resGranted[i].tokenId);
     }
 
     await expect(mockProtocol.connect(user1).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
@@ -835,13 +831,11 @@ describe("Access", function () {
     await mockProtocol.connect(user1).externalAccFunc3(1);
 
     // Some User (not owner) try to burn user1's token
-    await expect(access.connect(user3).burnToken(resGranted[0].tokenId)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(access.connect(user3).burn(resGranted[0].tokenId)).to.be.rejectedWith("NotTokenOwner()");
 
     // Admin (owner) burn all access tokens from User1
     for (const i of Array(user1TokensCount.toNumber()).keys()) {
-      await access.connect(owner).burnToken(await access.tokenOfOwnerByIndex(user1.address, 0));
+      await access.connect(owner).burn(await access.tokenOfOwnerByIndex(user1.address, 0));
     }
 
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
