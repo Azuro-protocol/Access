@@ -99,13 +99,13 @@ or for multiple roles
 ```solidity
 function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner
 ```
-#### 4. Owner grants role (mint NFT) to user
+#### 4. Owner grants role (mint NFT) to user, isNonTransferablefalse = false
 ```solidity
-function grantRole(address user, uint8 roleId, false)
+function grantRole(address user, uint8 roleId, bool isNonTransferable)
 ```
-#### 4.1. Owner grants role (mint NFT) to user with non transferable access token
+#### 4.1. Owner grants role (mint NFT) to user with non transferable access token, isNonTransferable = true
 ```solidity
-function grantRole(address user, uint8 roleId, true)
+function grantRole(address user, uint8 roleId, bool isNonTransferable)
 ```
 #### 5. User can transfer NFT to other user, except non transferable tokens (see 4.1)
 ```solidity
