@@ -22,19 +22,24 @@ contract Access is
     // Mapping from token ID to role ID
     mapping(uint256 => uint8) public tokenRoles;
 
-    /*
+    /**
      * @notice Mapping from function ID to vector of role IDs the function is included in.
      * @notice Every role represented by bit in 256 bits (32 bytes) role vector.
      *         Access is granted by matching bits of role vectors associated with caller and called function.
      */
     mapping(bytes32 => uint256) public functionRoles;
 
-    /*
+    /**
      * @notice Mapping from account to vector of role IDs the account is associated with.
      * @notice Every role represented by bit in 256 bits (32 bytes) access vector.
      *         Access is granted by matching bits of role vectors associated with caller and called function.
      */
     mapping(address => uint256) public userRoles;
+
+    /**
+     * @notice Mapping of non transferable token ids, but tokens still can be burnt
+     */
+    mapping(uint256 => bool) public tokenNonTransferable;
 
     function initialize(
         string memory name_,
@@ -76,12 +81,53 @@ contract Access is
     }
 
     /**
-     * @notice Grant role `roleId` to `account`.
+     * @notice change batch of tokens ability to transfer token,
+     * @notice forbid transfer - set `isNonTransferable` true, set false to allow transfer
+     * @param tokens is token id for change transfer ability and isNonTransferable (true - forbid token transfer)
      */
-    function grantRole(address account, uint8 roleId) external onlyOwner {
+    function changeBatchTokenTransferability(
+        TokenTransferability[] calldata tokens
+    ) external onlyOwner {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _changeTokenTransferability(tokens[i]);
+        }
+    }
+
+    /**
+     * @notice change token owner's ability to transfer token,
+     * @notice forbid transfer - set `isNonTransferable` true, set false to allow transfer
+     * @param tokenId token id for change transfer ability
+     * @param isNonTransferable set true - forbid token transfer
+     */
+    function changeTokenTransferability(
+        uint256 tokenId,
+        bool isNonTransferable
+    ) external onlyOwner {
+        _changeTokenTransferability(
+            TokenTransferability(tokenId, isNonTransferable)
+        );
+    }
+
+    /**
+     * @notice Grant role `roleId` to `account`.
+     * @notice By default granted access token can be transferred by `account`,
+     * @notice if not supposed, set `isNonTransferable` -> true
+     * @param account granting account address
+     * @param roleId granting role id
+     * @param isNonTransferable if true - granted token can't be transferred
+     */
+    function grantRole(
+        address account,
+        uint8 roleId,
+        bool isNonTransferable
+    ) external onlyOwner {
         uint256 _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
         _mint(account, _nextTokenId);
+        if (isNonTransferable)
+            _changeTokenTransferability(
+                TokenTransferability(_nextTokenId, isNonTransferable)
+            );
     }
 
     /**
@@ -171,6 +217,8 @@ contract Access is
         uint8 roleId = tokenRoles[firstTokenId];
         // not burn
         if (to != address(0)) {
+            if (tokenNonTransferable[firstTokenId])
+                revert TokenNonTransferable();
             if (roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
@@ -191,6 +239,18 @@ contract Access is
 
         functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
+    }
+
+    function _changeTokenTransferability(
+        TokenTransferability memory tokens
+    ) internal {
+        if (tokenNonTransferable[tokens.tokenId] == tokens.isNonTransferable)
+            revert NoChanges();
+        tokenNonTransferable[tokens.tokenId] = tokens.isNonTransferable;
+        emit TokenTransferabilityChanged(
+            tokens.tokenId,
+            tokens.isNonTransferable
+        );
     }
 
     /**

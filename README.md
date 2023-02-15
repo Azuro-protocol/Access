@@ -101,9 +101,13 @@ function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner
 ```
 #### 4. Owner grants role (mint NFT) to user
 ```solidity
-function grantRole(address user, uint8 roleId)
+function grantRole(address user, uint8 roleId, false)
 ```
-#### 5. User can transfer NFT to other user
+#### 4.1. Owner grants role (mint NFT) to user with non transferable access token
+```solidity
+function grantRole(address user, uint8 roleId, true)
+```
+#### 5. User can transfer NFT to other user, except non transferable tokens (see 4.1)
 ```solidity
 // {IERC721-transferFrom}
 function transferFrom(address from, address to, uint256 tokenId)
@@ -120,8 +124,15 @@ function burn(uint256 tokenId)
 ```solidity
 function burnToken(uint256 tokenId)
 ```
+#### 9. Owner can change token's transfer ability
+```solidity
+function changeTokenTransferability(uint256 tokenId, bool isNonTransferable)
+```
+#### 9.1. Owner can change batch of token's transfer ability
+```solidity
+function changeBatchTokenTransferability(TokenTransferability[] calldata tokens)
+```
 ## compile and test tasks:
-
 ```shell
 npx hardhat compile
 npx hardhat test
