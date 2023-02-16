@@ -910,10 +910,22 @@ describe("Access", function () {
       access.connect(user3).transferFrom(user3.address, user1.address, resGranted[2].tokenId)
     ).to.be.rejectedWith("TokenNonTransferable()");
 
-    // Admin try make non transferable already non-transferable token
+    // Admin try make non transferable already non-transferable one token
+    await expect(makeChangeTokenTransferability(access, owner, resGranted[1].tokenId, true))
+      .to.be.revertedWithCustomError(access, "NoChanges")
+      .withArgs(1);
+
+    // Admin try make non transferable already non-transferable for multiple tokens
     await expect(
-      makeChangeTokenTransferability(access, owner, resGranted[0].tokenId, true)
-    ).to.be.revertedWithCustomError(access, "NoChanges");
+      makeChangeBatchTokenTransferability(
+        access,
+        owner,
+        [resGranted[0].tokenId, resGranted[1].tokenId, resGranted[2].tokenId],
+        [true, true, true]
+      )
+    )
+      .to.be.revertedWithCustomError(access, "NoChanges")
+      .withArgs(0);
 
     // Admin makes tokens of Role0, Role1 transferable
     let resChangeBatch = await makeChangeBatchTokenTransferability(

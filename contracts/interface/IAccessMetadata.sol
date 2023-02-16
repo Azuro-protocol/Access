@@ -29,6 +29,6 @@ interface IAccessMetadata {
     error AccessNotGranted();
     error RoleAlreadyGranted();
 
-    error NoChanges();
+    error NoChanges(uint256 tokenId);
     error TokenNonTransferable();
 }

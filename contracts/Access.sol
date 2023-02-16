@@ -245,7 +245,7 @@ contract Access is
         TokenTransferability memory tokens
     ) internal {
         if (tokenNonTransferable[tokens.tokenId] == tokens.isNonTransferable)
-            revert NoChanges();
+            revert NoChanges(tokens.tokenId);
         tokenNonTransferable[tokens.tokenId] = tokens.isNonTransferable;
         emit TokenTransferabilityChanged(
             tokens.tokenId,
