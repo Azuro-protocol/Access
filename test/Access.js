@@ -927,18 +927,25 @@ describe("Access", function () {
       .to.be.revertedWithCustomError(access, "NoChanges")
       .withArgs(0);
 
-    // Admin makes tokens of Role0, Role1 transferable
+    // Admin makes tokens of Role0, Role1, Role2 transferable
     let resChangeBatch = await makeChangeBatchTokenTransferability(
       access,
       owner,
-      [resGranted[0].tokenId, resGranted[1].tokenId],
-      [false, false]
+      [resGranted[0].tokenId, resGranted[1].tokenId, resGranted[2].tokenId],
+      [false, false, false]
     );
+
+    expect(resChangeBatch.tokens.length).to.be.eq(3);
 
     for (const i of resChangeBatch.tokens) {
       expect(resChangeBatch.tokens[i]).to.be.eq(resGranted[i].tokenId);
       expect(resChangeBatch.isNonTransferables[i]).to.be.eq(false);
     }
+
+    // Admin makes tokens of Role2 non-transferable
+    let resChange = await makeChangeTokenTransferability(access, owner, resGranted[2].tokenId, true);
+    expect(resChange.tokenId).to.be.eq(resGranted[2].tokenId);
+    expect(resChange.isNonTransferable).to.be.eq(true);
 
     // User1 successfully transfer Role0 -> User2
     await access.connect(user1).transferFrom(user1.address, user2.address, resGranted[0].tokenId);

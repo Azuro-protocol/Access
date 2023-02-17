@@ -21,7 +21,12 @@ interface IAccessMetadata {
     event RoleGranted(address indexed user, uint8 indexed roleId);
     event RoleRevoked(address indexed user, uint8 indexed roleId);
 
-    event TokenTransferabilityChanged(uint256 tokenId, bool isNonTransferable);
+    event TokenTransferabilityChanged(
+        TokenTransferability tokenTransferability
+    );
+    event TokenTransferabilityBatchChanged(
+        TokenTransferability[] tokenTransferability
+    );
 
     error NotTokenOwner();
     error MaxRolesReached();

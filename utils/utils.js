@@ -41,11 +41,15 @@ async function getEventsFromTx(express, tx, eventName) {
 
 const getChangeTokenTransferability = async (access, tx) => {
   let [event, gas] = await getEventFromTx(access, tx, "TokenTransferabilityChanged");
-  return { tokenId: event.tokenId, isNonTransferable: event.isNonTransferable, gasUsed: gas };
+  return {
+    tokenId: event.tokenTransferability.tokenId,
+    isNonTransferable: event.tokenTransferability.isNonTransferable,
+    gasUsed: gas,
+  };
 };
 
-const getChangeTokensTransferability = async (access, tx) => {
-  let [events, gas] = await getEventsFromTx(access, tx, "TokenTransferabilityChanged");
+const getChangeTokensTransferabilityBatch = async (access, tx) => {
+  let [events, gas] = await getEventsFromTx(access, tx, "TokenTransferabilityBatchChanged");
   return { events: events, gasUsed: gas };
 };
 
@@ -117,7 +121,7 @@ const makeBindRoles = async (access, owner, roleDatas) => {
 const makeChangeTokenTransferability = async (access, owner, tokenId, isNonTransferable) => {
   let tx = await access.connect(owner).changeTokenTransferability(tokenId, isNonTransferable);
   let res = await getChangeTokenTransferability(access, tx);
-  return { funcIds: res.tokenId, roleIds: res.isNonTransferable };
+  return { tokenId: res.tokenId, isNonTransferable: res.isNonTransferable };
 };
 
 const makeChangeBatchTokenTransferability = async (access, owner, tokens, nonTransferabilities) => {
@@ -126,13 +130,13 @@ const makeChangeBatchTokenTransferability = async (access, owner, tokens, nonTra
     tokenTransferability.push({ tokenId: tokens[i], isNonTransferable: nonTransferabilities[i] });
   }
   let tx = await access.connect(owner).changeBatchTokenTransferability(tokenTransferability);
-  let res = await getChangeTokensTransferability(access, tx);
+  let res = await getChangeTokensTransferabilityBatch(access, tx);
 
   let resTokens = [];
   let isNonTransferables = [];
-  for (const i of res.events.keys()) {
-    resTokens.push(res.events[i].tokenId);
-    isNonTransferables.push(res.events[i].isNonTransferable);
+  for (const i of res.events[0].tokenTransferability.keys()) {
+    resTokens.push(res.events[0].tokenTransferability[i].tokenId);
+    isNonTransferables.push(res.events[0].tokenTransferability[i].isNonTransferable);
   }
   return { tokens: resTokens, isNonTransferables: isNonTransferables };
 };

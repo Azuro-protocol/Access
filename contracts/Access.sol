@@ -91,6 +91,7 @@ contract Access is
         for (uint256 i = 0; i < tokens.length; i++) {
             _changeTokenTransferability(tokens[i]);
         }
+        emit TokenTransferabilityBatchChanged(tokens);
     }
 
     /**
@@ -104,6 +105,9 @@ contract Access is
         bool isNonTransferable
     ) external onlyOwner {
         _changeTokenTransferability(
+            TokenTransferability(tokenId, isNonTransferable)
+        );
+        emit TokenTransferabilityChanged(
             TokenTransferability(tokenId, isNonTransferable)
         );
     }
@@ -124,10 +128,14 @@ contract Access is
         uint256 _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
         _mint(account, _nextTokenId);
-        if (isNonTransferable)
+        if (isNonTransferable) {
             _changeTokenTransferability(
                 TokenTransferability(_nextTokenId, isNonTransferable)
             );
+            emit TokenTransferabilityChanged(
+                TokenTransferability(_nextTokenId, isNonTransferable)
+            );
+        }
     }
 
     /**
@@ -247,10 +255,6 @@ contract Access is
         if (tokenNonTransferable[tokens.tokenId] == tokens.isNonTransferable)
             revert NoChanges(tokens.tokenId);
         tokenNonTransferable[tokens.tokenId] = tokens.isNonTransferable;
-        emit TokenTransferabilityChanged(
-            tokens.tokenId,
-            tokens.isNonTransferable
-        );
     }
 
     /**
