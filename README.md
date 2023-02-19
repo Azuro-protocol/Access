@@ -99,7 +99,7 @@ or for multiple roles
 ```solidity
 function bindRoles(RoleData[] calldata RoleDatas) external onlyOwner
 ```
-#### 4. Owner grants role (mint NFT) to user, isNonTransferablefalse = false
+#### 4. Owner grants role (mint NFT) to user, isNonTransferable = false
 ```solidity
 function grantRole(address user, uint8 roleId, bool isNonTransferable)
 ```

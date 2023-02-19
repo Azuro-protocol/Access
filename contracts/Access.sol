@@ -250,11 +250,11 @@ contract Access is
     }
 
     function _changeTokenTransferability(
-        TokenTransferability memory tokens
+        TokenTransferability memory token
     ) internal {
-        if (tokenNonTransferable[tokens.tokenId] == tokens.isNonTransferable)
-            revert NoChanges(tokens.tokenId);
-        tokenNonTransferable[tokens.tokenId] = tokens.isNonTransferable;
+        if (tokenNonTransferable[token.tokenId] == token.isNonTransferable)
+            revert NoChanges(token.tokenId);
+        tokenNonTransferable[token.tokenId] = token.isNonTransferable;
     }
 
     /**
