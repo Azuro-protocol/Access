@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
 
+import "./library/Base64.sol";
+import "./library/Strings.sol";
 import "./interface/IAccess.sol";
 import "./interface/IAccessMetadata.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
@@ -13,6 +15,9 @@ contract Access is
     IAccessMetadata,
     IAccess
 {
+    using Strings for uint256;
+    using Strings for uint8;
+
     uint256 public nextRole;
     uint256 public nextTokenId;
 
@@ -204,6 +209,79 @@ contract Access is
         return bytes32(abi.encodePacked(target)) | (bytes32(selector) >> 224);
     }
 
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        string[286] memory parts;
+        parts[0] = string(
+            abi.encodePacked(
+                '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.head { fill: yellow; font-family: "Inter var", sans-serif; font-size: 12px; } .base { fill: white; font-family: "Inter var", sans-serif; font-size: 10px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="head">Access token # ',
+                tokenId.toString()
+            )
+        );
+        uint8 roleId = tokenRoles[tokenId];
+        parts[1] = string(
+            abi.encodePacked(
+                '</text><text x="10" y="30" class="base"> Role id: ',
+                roleId.toString()
+            )
+        );
+        parts[2] = string(
+            abi.encodePacked(
+                '</text><text x="10" y="40" class="base"> Role name: ',
+                _bytes32ToString(roles[roleId])
+            )
+        );
+        parts[
+            3
+        ] = '</text><text x="10" y="60" class="base"> Summarized account roles </text>';
+
+        address account = ownerOf(tokenId);
+        uint256 r;
+
+        for (uint256 i = 0; i < 256; ++i) {
+            if (roleGranted(account, uint8(i))) {
+                parts[4 + i] = string(
+                    abi.encodePacked(
+                        '<text x="10" y="',
+                        (70 + 10 * i).toString(),
+                        '" class="base"> id: ',
+                        r.toString(),
+                        " name: ",
+                        _bytes32ToString(roles[r]),
+                        "</text>"
+                    )
+                );
+            }
+            r++;
+        }
+
+        string memory output;
+        for (uint256 i = 0; i < parts.length; i++) {
+            output = string(abi.encodePacked(output, parts[i]));
+        }
+
+        output = string(abi.encodePacked(output, "</svg>"));
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        '{"name": "Access token #',
+                        tokenId.toString(),
+                        '", "description": "Realize role based function access. Easy to transfer. Easy to use. Enjoy.", "image": "data:image/svg+xml;base64,',
+                        Base64.encode(bytes(output)),
+                        '"}'
+                    )
+                )
+            )
+        );
+        output = string(
+            abi.encodePacked("data:application/json;base64,", json)
+        );
+        return output;
+    }
+
     /**
      * @dev Hook that is called after any (single) transfer of tokens. This includes minting and burning.
      * See {ERC721BurnableUpgradeable-_afterTokenTransfer}.
@@ -239,6 +317,20 @@ contract Access is
 
         functionRoles[funcId] = newRole;
         emit RoleBound(funcId, role.roleId);
+    }
+
+    function _bytes32ToString(
+        bytes32 _bytes32
+    ) public pure returns (string memory) {
+        uint8 i = 0;
+        while (i < 32 && _bytes32[i] != 0) {
+            i++;
+        }
+        bytes memory bytesArray = new bytes(i);
+        for (i = 0; i < 32 && _bytes32[i] != 0; ++i) {
+            bytesArray[i] = _bytes32[i];
+        }
+        return string(bytesArray);
     }
 
     function _changeTokenTransferability(
