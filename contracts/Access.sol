@@ -116,22 +116,37 @@ contract Access is
     /**
      * @notice Grant role `roleId` to `account`.
      * @notice By default granted access token can be transferred by `account`,
+     * @param account granting account address
+     * @param roleId granting role id
+     */
+    function grantRole(
+        address account,
+        uint8 roleId
+    ) public onlyOwner returns (uint256 _nextTokenId) {
+        _nextTokenId = nextTokenId++;
+        tokenRoles[_nextTokenId] = roleId;
+        _mint(account, _nextTokenId);
+    }
+
+    /**
+     * @notice Grant role `roleId` to `account`.
+     * @notice By default granted access token can be transferred by `account`,
      * @notice if not supposed, set `isNonTransferable` -> true
      * @param account granting account address
      * @param roleId granting role id
      * @param isNonTransferable if true - granted token can't be transferred
      */
-    function grantRole(
+    function grantRoleTransferable(
         address account,
         uint8 roleId,
         bool isNonTransferable
     ) external onlyOwner {
-        uint256 _nextTokenId = nextTokenId++;
-        tokenRoles[_nextTokenId] = roleId;
-        _mint(account, _nextTokenId);
         if (isNonTransferable)
             _changeTokenTransferability(
-                TokenTransferability(_nextTokenId, isNonTransferable)
+                TokenTransferability(
+                    grantRole(account, roleId),
+                    isNonTransferable
+                )
             );
     }
 

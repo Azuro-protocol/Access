@@ -144,14 +144,14 @@ const makeUnbindRole = async (access, owner, contract, selector, roleId) => {
 };
 
 const makeGrantRole = async (access, owner, user, roleId) => {
-  let tx = await access.connect(owner).grantRole(user.address, roleId, false);
+  let tx = await access.connect(owner).grantRole(user.address, roleId);
   let res = await getRoleGrantedDetails(access, tx);
   let tranferRes = await getTransferNFTTokenDetails(access, tx);
   return { user: res.user, roleId: res.roleId, from: tranferRes.from, to: tranferRes.to, tokenId: tranferRes.tokenId };
 };
 
 const makeGrantRoleNonTransferable = async (access, owner, user, roleId) => {
-  let tx = await access.connect(owner).grantRole(user.address, roleId, true);
+  let tx = await access.connect(owner).grantRoleTransferable(user.address, roleId, true);
   let res = await getRoleGrantedDetails(access, tx);
   let tranferRes = await getTransferNFTTokenDetails(access, tx);
   return { user: res.user, roleId: res.roleId, from: tranferRes.from, to: tranferRes.to, tokenId: tranferRes.tokenId };

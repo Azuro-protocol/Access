@@ -33,17 +33,17 @@ async function main() {
   await makeBindRoles(access, deployer, roleDatas);
   await timeout(TIME_OUT);
 
-  await access.connect(deployer).grantRole(SAFEWALLET, 0, false);
+  await access.connect(deployer).grantRole(SAFEWALLET, 0);
   await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(SAFEWALLET, 1, false);
+  await access.connect(deployer).grantRole(SAFEWALLET, 1);
   await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(SAFEWALLET, 2, false);
+  await access.connect(deployer).grantRole(SAFEWALLET, 2);
   await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(PUBLWALLET, 1, false);
+  await access.connect(deployer).grantRole(PUBLWALLET, 1);
   await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(MAINTAINER, 1, false);
+  await access.connect(deployer).grantRole(MAINTAINER, 1);
   await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(MAINTAINER, 2, false);
+  await access.connect(deployer).grantRole(MAINTAINER, 2);
 }
 
 main()
