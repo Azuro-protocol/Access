@@ -4,8 +4,11 @@ const {
   makeAddRole,
   makeBindRole,
   makeBindRoles,
+  makeChangeBatchTokenTransferability,
+  makeChangeTokenTransferability,
   makeUnbindRole,
   makeGrantRole,
+  makeGrantRoleNonTransferable,
   makeRenameRole,
 } = require("../utils/utils");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
@@ -16,8 +19,12 @@ describe("Access", function () {
     let access, mockProtocol;
     let funcsIdCalced = [];
     let selectors = [];
+    let users = [];
 
     [owner, user1, user2, user3] = await ethers.getSigners();
+    users.push(user1);
+    users.push(user2);
+    users.push(user3);
 
     const Access = await ethers.getContractFactory("Access");
     access = await upgrades.deployProxy(Access, ["Access NFT token", "AccNFT"]);
@@ -32,7 +39,6 @@ describe("Access", function () {
     mockProtocol = await MockProtocol.deploy(access.address);
 
     // prepare selector
-
     for (const i of Array(3).keys()) {
       let abi = ["function externalAccFunc" + (i + 1).toString() + "(uint256)"];
       let iface = new ethers.utils.Interface(abi);
@@ -40,15 +46,11 @@ describe("Access", function () {
       funcsIdCalced.push(BigNumber.from(mockProtocol.address).shl(96).or(BigNumber.from(selectors[i])));
     }
 
-    //console.log("selectors", selectors, "funcsIdCalced", funcsIdCalced);
-
-    return { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol };
+    return { owner, users, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol };
   }
 
   it("try call owners funciton, from not owner", async () => {
-    const { owner, user1, user2, _, selectors, funcIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, selectors, access, mockProtocol } = await loadFixture(deployContracts);
 
     // try add roles
     await expect(makeAddRole(access, user1, "Role0")).to.be.revertedWith("Ownable: caller is not the owner");
@@ -74,12 +76,20 @@ describe("Access", function () {
     await expect(makeUnbindRole(access, user1, mockProtocol.address, selectors[0], res.roleId)).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
+
+    // try change token transferability from not owner
+    await expect(makeChangeTokenTransferability(access, user1, 0, true)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    // try batch change token transferability from not owner
+    await expect(makeChangeBatchTokenTransferability(access, user1, [0, 1], [true, true])).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
   });
 
   it("try big role names", async () => {
-    const { owner, user1, user2, _, selectors, funcIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, access } = await loadFixture(deployContracts);
 
     // try add role with name more than 32 chars
     await expect(makeAddRole(access, owner, "Role567890Role567890Role567890123")).to.be.revertedWithCustomError(
@@ -95,7 +105,6 @@ describe("Access", function () {
       makeRenameRole(access, owner, newRole.roleId, "Role567890Role567890Role567890123")
     ).to.be.revertedWithCustomError(access, "TooBigRoleName");
   });
-
   it("check granted user accessed to function, not granted user has no access", async () => {
     /**
       User granted roles
@@ -168,9 +177,7 @@ describe("Access", function () {
       User2 |    V   |            User2 |    V   |   Yes   |
      */
 
-    const { owner, user1, user2, _, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add role
     let res = await makeAddRole(access, owner, "Role0");
@@ -213,9 +220,7 @@ describe("Access", function () {
       User1 |        |            User1 |        |   No    |
      */
 
-    const { owner, user1, user2, _, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add role
     let res = await makeAddRole(access, owner, "Role0");
@@ -258,9 +263,7 @@ describe("Access", function () {
       User2 |        |            User2 |        |   No    |
      */
 
-    const { owner, user1, user2, _, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add role
     let res = await makeAddRole(access, owner, "Role0");
@@ -310,9 +313,7 @@ describe("Access", function () {
       User2 |        |            User2 |        |   No    |
      */
 
-    const { owner, user1, user2, _, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add role
     let res = await makeAddRole(access, owner, "Role0");
@@ -345,9 +346,7 @@ describe("Access", function () {
       User2 |         |            User2 |         |    No    |
      */
     let res = [];
-    const { owner, user1, user2, _, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, user1, user2, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add 256 roles [0..255]
     for (const iterator of Array(256).keys()) {
@@ -537,7 +536,6 @@ describe("Access", function () {
     await expect(mockProtocol.connect(user3).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user3).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
   });
-  // burn(uint256 tokenId)
   it("check granted user accessed only to functions with role access, not granted user has no access, admin burn all granted tokens", async () => {
     /**
       Bind functions to roles
@@ -638,9 +636,7 @@ describe("Access", function () {
       ------+--------+---------+---------
       Func1 |    V   |         |
      */
-    const { owner, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
-      deployContracts
-    );
+    const { owner, selectors, access, mockProtocol } = await loadFixture(deployContracts);
 
     // add 3 roles
     let res = [];
@@ -841,5 +837,113 @@ describe("Access", function () {
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user1).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
     await expect(mockProtocol.connect(user1).externalAccFunc3(1)).to.be.rejectedWith("AccessNotGranted()");
+  });
+  it("Admin granted roles to users non transferable tokens, users try to transfer, admin change to transferable", async () => {
+    /**
+      Admin grants NonTransferable roles
+      ------+--------+-------+-------+
+            |  Role0 | Role1 | Role2 |
+      ------+--------+-------+-------+
+      User1 |    V   |       |       |
+      User2 |        |   V   |       |
+      User3 |        |       |   V   |
+
+      User1 try transfer Role0 -> User2, but token non transferable
+      User2 try transfer Role1 -> User3, but token non transferable
+      User3 try transfer Role2 -> User0, but token non transferable
+
+      Admin makes tokens of Role0, Role1 transferable
+
+      User1 successfully transfer Role0 -> User2
+      User2 successfully transfer Role1 -> User3
+      User3 try transfer Role2 -> User0, but token non transferable
+
+      ------+--------+-------+-------+
+            |  Role0 | Role1 | Role2 |
+      ------+--------+-------+-------+
+      User1 |        |       |       |
+      User2 |    V   |       |       |
+      User3 |        |   V   |   V   |
+     */
+
+    const { owner, users, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol } = await loadFixture(
+      deployContracts
+    );
+
+    // add roles
+    let resRoles = [];
+    for (const i of Array(3).keys()) {
+      resRoles.push(await makeAddRole(access, owner, "Role" + i));
+    }
+
+    // bind Role0
+    for (const i of Array(3).keys()) {
+      let resBind = await makeBindRole(access, owner, mockProtocol.address, selectors[i], resRoles[i].roleId);
+      expect(resBind.funcId).to.be.eq(funcsIdCalced[i].toHexString());
+    }
+
+    // grant roles
+    let resGranted = [];
+    for (const i of Array(3).keys()) {
+      resGranted.push(await makeGrantRoleNonTransferable(access, owner, users[i], resRoles[i].roleId));
+    }
+
+    // user1, user2 has granted function
+    await mockProtocol.connect(user1).externalAccFunc1(1);
+    await mockProtocol.connect(user2).externalAccFunc2(1);
+    await mockProtocol.connect(user3).externalAccFunc3(1);
+
+    // user3 has not granted function
+    await expect(mockProtocol.connect(user3).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+
+    // User1 try transfer Role0 -> User2, but token non transferable
+    await expect(
+      access.connect(user1).transferFrom(user1.address, user2.address, resGranted[0].tokenId)
+    ).to.be.rejectedWith("TokenNonTransferable()");
+
+    // User2 try transfer Role1 -> User3, but token non transferable
+    await expect(
+      access.connect(user2).transferFrom(user2.address, user3.address, resGranted[1].tokenId)
+    ).to.be.rejectedWith("TokenNonTransferable()");
+    // User3 try transfer Role2 -> User0, but token non transferable
+    await expect(
+      access.connect(user3).transferFrom(user3.address, user1.address, resGranted[2].tokenId)
+    ).to.be.rejectedWith("TokenNonTransferable()");
+
+    // Admin try make non transferable already non-transferable token
+    await expect(
+      makeChangeTokenTransferability(access, owner, resGranted[0].tokenId, true)
+    ).to.be.revertedWithCustomError(access, "NoChanges");
+
+    // Admin makes tokens of Role0, Role1 transferable
+    let resChangeBatch = await makeChangeBatchTokenTransferability(
+      access,
+      owner,
+      [resGranted[0].tokenId, resGranted[1].tokenId],
+      [false, false]
+    );
+
+    for (const i of resChangeBatch.tokens) {
+      expect(resChangeBatch.tokens[i]).to.be.eq(resGranted[i].tokenId);
+      expect(resChangeBatch.isNonTransferables[i]).to.be.eq(false);
+    }
+
+    // User1 successfully transfer Role0 -> User2
+    await access.connect(user1).transferFrom(user1.address, user2.address, resGranted[0].tokenId);
+
+    // User2 successfully transfer Role1 -> User3
+    await access.connect(user2).transferFrom(user2.address, user3.address, resGranted[1].tokenId);
+
+    // User3 try transfer Role2 -> User0, but token non transferable
+    await expect(
+      access.connect(user3).transferFrom(user3.address, user1.address, resGranted[2].tokenId)
+    ).to.be.rejectedWith("TokenNonTransferable()");
+
+    // user1 no access, user2 has Role0, user3 granted Role1, Role2
+    await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+    await expect(mockProtocol.connect(user2).externalAccFunc2(1)).to.be.rejectedWith("AccessNotGranted()");
+    await mockProtocol.connect(user2).externalAccFunc1(1);
+    await mockProtocol.connect(user3).externalAccFunc2(1);
+    await mockProtocol.connect(user3).externalAccFunc3(1);
   });
 });
