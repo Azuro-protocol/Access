@@ -2,9 +2,14 @@ const hre = require("hardhat");
 const { timeout, makeAddRole, makeBindRoles, makeGrantRole } = require("../utils/utils");
 
 async function main() {
+ try {
   const TIME_OUT = 20000;
 
   const ACCESS_ADDRESS = process.env.ACCESS_ADDRESS;
+  if (!ACCESS_ADDRESS) {
+    throw new Error("ACCESS_ADDRESS is not provided.");
+    }
+  
   const [deployer] = await ethers.getSigners();
   const SAFEWALLET = "0x0000000000000000000000000000000001010101";
   const PUBLWALLET = "0x0000000000000000000000000000000002020202";
@@ -13,12 +18,15 @@ async function main() {
   const Access = await ethers.getContractFactory("Access", { signer: deployer });
   const access = await Access.attach(ACCESS_ADDRESS);
 
-  await makeAddRole(access, deployer, "Role for some sensitive action"); // 0
-  await timeout(TIME_OUT);
-  await makeAddRole(access, deployer, "Role for public action, is safe"); // 1
-  await timeout(TIME_OUT);
-  await makeAddRole(access, deployer, "Maintainer action role, settings"); // 2
-  await timeout(TIME_OUT);
+await Promise.all([
+  makeAddRole(access, deployer, "Role for some sensitive action"), // 0
+  timeout(TIME_OUT),
+  makeAddRole(access, deployer, "Role for public action, is safe"), // 1
+  timeout(TIME_OUT),
+  makeAddRole(access, deployer, "Maintainer action role, settings"), // 2
+  timeout(TIME_OUT),
+]);
+
 
   const roleDatas = [
     { target: "0x0000000000000000000000000000000007654321", selector: "0xa8d9461a", roleId: 0 },
@@ -33,17 +41,23 @@ async function main() {
   await makeBindRoles(access, deployer, roleDatas);
   await timeout(TIME_OUT);
 
-  await access.connect(deployer).grantRole(SAFEWALLET, 0);
-  await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(SAFEWALLET, 1);
-  await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(SAFEWALLET, 2);
-  await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(PUBLWALLET, 1);
-  await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(MAINTAINER, 1);
-  await timeout(TIME_OUT);
-  await access.connect(deployer).grantRole(MAINTAINER, 2);
+await Promise.all([
+  access.connect(deployer).grantRole(SAFEWALLET, 0),
+  timeout(TIME_OUT),
+  access.connect(deployer).grantRole(SAFEWALLET, 1),
+  timeout(TIME_OUT),
+  access.connect(deployer).grantRole(SAFEWALLET, 2),
+  timeout(TIME_OUT),
+  access.connect(deployer).grantRole(PUBLWALLET, 1),
+  timeout(TIME_OUT),
+  access.connect(deployer).grantRole(MAINTAINER, 1),
+  timeout(TIME_OUT),
+  access.connect(deployer).grantRole(MAINTAINER, 2),
+]);
+
+  } catch (error) {
+  console.error(error);
+  process.exit(1);
 }
 
 main()
@@ -52,3 +66,4 @@ main()
     console.error(error);
     process.exit(1);
   });
+
