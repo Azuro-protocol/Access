@@ -1,10 +1,6 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@openzeppelin/hardhat-upgrades");
-require("hardhat-contract-sizer");
-require("hardhat-gas-reporter");
-require("@nomiclabs/hardhat-etherscan");
-
 require("dotenv").config();
+require("@nomicfoundation/hardhat-toolbox");
+require("hardhat-contract-sizer");
 
 const MUMBAI_PRIVATE_KEY = process.env.MUMBAI_PRIVATE_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
@@ -38,7 +34,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.17",
+        version: "0.8.27",
         settings: {
           optimizer: {
             enabled: true,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.17;
+pragma solidity 0.8.27;
 
 import "./library/Base64.sol";
 import "./library/Strings.sol";
@@ -50,7 +50,7 @@ contract Access is
         string memory name_,
         string memory symbol_
     ) external initializer {
-        __Ownable_init_unchained();
+        __Ownable_init_unchained(msg.sender); // set ownership
         __ERC721_init(name_, symbol_);
     }
 
@@ -126,6 +126,7 @@ contract Access is
         _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
         _mint(account, _nextTokenId);
+        _afterTokenTransfer(address(0), account, _nextTokenId);
     }
 
     /**
@@ -182,11 +183,13 @@ contract Access is
      * - The caller must own `tokenId` or be an approved operator or access owner.
      */
     function burn(uint256 tokenId) public virtual {
+        address owner_ = owner();
         if (
-            !_isApprovedOrOwner(_msgSender(), tokenId) &&
-            !(owner() == _msgSender())
+           !(owner_ == _msgSender()) &&
+            !_isAuthorized(owner_, _msgSender(), tokenId)
         ) revert NotTokenOwner();
         _burn(tokenId);
+        _afterTokenTransfer(owner_, address(0), tokenId);
     }
 
     /**
@@ -304,9 +307,8 @@ contract Access is
     function _afterTokenTransfer(
         address from,
         address to,
-        uint256 firstTokenId,
-        uint256 // unused parameter - silence warning
-    ) internal virtual override {
+        uint256 firstTokenId
+    ) internal {
         uint8 roleId = tokenRoles[firstTokenId];
         // not burn
         if (to != address(0)) {

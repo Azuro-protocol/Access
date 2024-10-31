@@ -1,11 +1,15 @@
 const { ethers } = require("hardhat");
 
-async function getEventFromTx(express, tx, eventName) {
-  const receipt = await tx.wait();
+async function newBlock() {
+  await network.provider.send("evm_mine");
+}
+
+async function getEventFromTx(contract, tx, eventFilter) {
+  /* const receipt = await tx.wait();
   let iface = new ethers.utils.Interface(
     express.interface.format(ethers.utils.FormatTypes.full).filter((x) => {
       return x.includes(eventName);
-    })
+    }),
   );
 
   let event;
@@ -14,9 +18,16 @@ async function getEventFromTx(express, tx, eventName) {
       event = iface.parseLog(log).args;
       break;
     }
-  }
+  } */
+  const receipt = await tx.wait();
+  const events = await contract.queryFilter(eventFilter, -1);
+  //console.log("events[0]", events[0]);
+  await newBlock(); // mine new block for correctly getting events (every withdraw transaction at new block)
+  //return events[0].transactionHash == tx.hash ? events[0].args[1] : 0n;
+  let event = events[0].transactionHash == tx.hash ? events[0].args : [];
+  //console.log("event", event);
 
-  const gas = BigInt(receipt.cumulativeGasUsed) * BigInt(receipt.effectiveGasPrice);
+  const gas = BigInt(receipt.cumulativeGasUsed) * BigInt(receipt.gasPrice);
   return [event, gas];
 }
 
@@ -25,7 +36,7 @@ async function getEventsFromTx(express, tx, eventName) {
   let iface = new ethers.utils.Interface(
     express.interface.format(ethers.utils.FormatTypes.full).filter((x) => {
       return x.includes(eventName);
-    })
+    }),
   );
 
   let events = [];
@@ -50,7 +61,7 @@ const getChangeTokensTransferability = async (access, tx) => {
 };
 
 const getRoleAddedDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "RoleAdded");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.RoleAdded);
   return { role: event.role, roleId: event.roleId, gasUsed: gas };
 };
 

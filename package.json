@@ -6,38 +6,24 @@
   "author": "Maksim Kiselev",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.0",
-    "@openzeppelin/contracts-upgradeable": "^4.8.0",
-    "@openzeppelin/hardhat-upgrades": "^1.21.0",
-    "dotenv": "^16.3.1",
-    "hardhat": "^2.12.2",
-    "hardhat-contract-sizer": "^2.6.1",
-    "hardhat-etherscan": "^1.0.1",
-    "prettier": "^2.7.1",
-    "prettier-plugin-solidity": "^1.0.0-rc.1"
+    "@openzeppelin/contracts": "5.1.0",
+    "@openzeppelin/contracts-upgradeable": "5.1.0",
+    "@openzeppelin/hardhat-upgrades": "3.5.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.15",
+    "hardhat-contract-sizer": "^2.10.0",
+    "prettier-plugin-solidity": "^1.4.1"
   },
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "prettier_sol": "prettier --write \"contracts/**/*.sol\"",
-    "prettier-js": "npx prettier --write {scripts,test,utils}/*.js --print-width 120 --tab-width 2",
+    "prettier-js": "npx prettier --write {scripts,test,utils,ignition/modules}/*.js --print-width 120 --tab-width 2",
     "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat"
   },
   "devDependencies": {
-    "@ethersproject/abi": "^5.4.7",
-    "@ethersproject/providers": "^5.4.7",
-    "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
-    "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
-    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
-    "@nomiclabs/hardhat-ethers": "^2.0.0",
-    "@nomiclabs/hardhat-etherscan": "^3.1.1",
-    "@typechain/ethers-v5": "^10.1.0",
-    "@typechain/hardhat": "^6.1.2",
-    "chai": "^4.2.0",
-    "ethers": "^5.4.7",
-    "hardhat-gas-reporter": "^1.0.9",
-    "solidity-coverage": "^0.8.0",
-    "typechain": "^8.1.0"
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.7",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
   }
 }
