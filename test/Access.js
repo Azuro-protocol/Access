@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const AccessAndMockProtocolModule = require("../ignition/modules/AccessAndMockProtocolModule");
 const {
+  bigIntToHex,
   makeAddRole,
   makeBindRole,
   makeBindRoles,
@@ -12,7 +13,6 @@ const {
   makeRenameRole,
 } = require("../utils/utils");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
-const { log } = require("console");
 
 describe("Access", function () {
   async function deployContracts() {
@@ -44,7 +44,7 @@ describe("Access", function () {
     return { owner, users, user1, user2, user3, selectors, funcsIdCalced, access, mockProtocol };
   }
 
-  it.only("try call owners funciton, from not owner", async () => {
+  it("try call owners funciton, from not owner", async () => {
     const { owner, user1, selectors, access, mockProtocol } = await loadFixture(deployContracts);
 
     // try add roles
@@ -133,7 +133,7 @@ describe("Access", function () {
     // bind Role1, Role2 to function
     for (const i of Array(2).keys()) {
       let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res[i].roleId);
-      expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+      expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
     }
 
     // add rights
@@ -180,9 +180,9 @@ describe("Access", function () {
 
     // bind Role0
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
     expect(await access.getFunctionId(await mockProtocol.getAddress(), selectors[0])).to.be.eq(
-      funcsIdCalced[0].toHexString(),
+      bigIntToHex(funcsIdCalced[0]),
     );
 
     // user1 add rights Role0
@@ -198,6 +198,7 @@ describe("Access", function () {
 
     // user1 not granted function and rejected
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
+
     // user2 has granted function
     await mockProtocol.connect(user2).externalAccFunc1(1);
   });
@@ -225,7 +226,7 @@ describe("Access", function () {
 
     // bind Role0
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // user1 add rights Role0
     let resGranted = await makeGrantRole(access, owner, user1, res.roleId);
@@ -268,7 +269,7 @@ describe("Access", function () {
 
     // bind Role0
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // user1, user2 add rights Role0
     await makeGrantRole(access, owner, user1, res.roleId);
@@ -280,13 +281,18 @@ describe("Access", function () {
 
     // unbind Role0
     let resUnbind = await makeUnbindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resUnbind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resUnbind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // unbind Role0 again - nothing happend
-    let resUnbindRepeatedTx = await access
-      .connect(owner)
-      .unbindRole({ target: await mockProtocol.getAddress(), selector: selectors[0], roleId: res.roleId });
-    expect((await resUnbindRepeatedTx.wait()).events.length).to.be.eq(0);
+    let resUnbindRepeatedTx = await makeUnbindRole(
+      access,
+      owner,
+      await mockProtocol.getAddress(),
+      selectors[0],
+      res.roleId,
+    );
+    expect(resUnbindRepeatedTx.roleId).to.be.eq(undefined);
+    expect(resUnbindRepeatedTx.funcId).to.be.eq(undefined);
 
     // user1, user2 has not granted to func1
     await expect(mockProtocol.connect(user1).externalAccFunc1(1)).to.be.rejectedWith("AccessNotGranted()");
@@ -318,7 +324,7 @@ describe("Access", function () {
 
     // bind Role0
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // user1 add rights Role0
     await makeGrantRole(access, owner, user1, res.roleId);
@@ -331,8 +337,8 @@ describe("Access", function () {
 
     // owner rename Role0 -> NewRole
     let resRename = await makeRenameRole(access, owner, res.roleId, "NewRole");
-    expect(ethers.utils.toUtf8String(resRename.role).replace(/\0/g, "")).to.be.eq("NewRole");
-    expect(ethers.utils.toUtf8String(await access.roles(res.roleId)).replace(/\0/g, "")).to.be.eq("NewRole");
+    expect(ethers.toUtf8String(resRename.role).replace(/\0/g, "")).to.be.eq("NewRole");
+    expect(ethers.toUtf8String(await access.roles(res.roleId)).replace(/\0/g, "")).to.be.eq("NewRole");
   });
   it("try to add roles more than 256 available, grant 255th role for user1 and check", async () => {
     /**
@@ -359,7 +365,7 @@ describe("Access", function () {
 
     // bind to maximum (of 256) role -> Role255
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res[255].roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // user1 add rights Role255
     await makeGrantRole(access, owner, user1, res[255].roleId);
@@ -401,7 +407,7 @@ describe("Access", function () {
 
     // bind Role0
     let resBind = await makeBindRole(access, owner, await mockProtocol.getAddress(), selectors[0], res.roleId);
-    expect(resBind.funcId).to.be.eq(funcsIdCalced[0].toHexString());
+    expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[0]));
 
     // user1, user2 add same rights Role0
     let resGranted1 = await makeGrantRole(access, owner, user1, res.roleId);
@@ -487,11 +493,13 @@ describe("Access", function () {
     }
 
     // try bindRoles from not owner
-    await expect(makeBindRoles(access, user1, roleDatas)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeBindRoles(access, user1, roleDatas))
+      .to.be.revertedWithCustomError(access, "OwnableUnauthorizedAccount")
+      .withArgs(user1.address);
 
     let resBindRoles = await makeBindRoles(access, owner, roleDatas);
     for (const i of Array(3).keys()) {
-      expect(resBindRoles.funcIds[i]).to.be.eq(funcsIdCalced[i].toHexString());
+      expect(resBindRoles.funcIds[i]).to.be.eq(bigIntToHex(funcsIdCalced[i]));
     }
 
     // add rights
@@ -594,11 +602,13 @@ describe("Access", function () {
     }
 
     // try bindRoles from not owner
-    await expect(makeBindRoles(access, user1, roleDatas)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeBindRoles(access, user1, roleDatas))
+      .to.be.revertedWithCustomError(access, "OwnableUnauthorizedAccount")
+      .withArgs(user1.address);
 
     let resBindRoles = await makeBindRoles(access, owner, roleDatas);
     for (const i of Array(3).keys()) {
-      expect(resBindRoles.funcIds[i]).to.be.eq(funcsIdCalced[i].toHexString());
+      expect(resBindRoles.funcIds[i]).to.be.eq(bigIntToHex(funcsIdCalced[i]));
     }
 
     // add rights
@@ -726,7 +736,7 @@ describe("Access", function () {
 
     // bind roles
     let resBindRoles = await makeBindRoles(access, owner, roleDatas);
-    let func0Id = funcsIdCalced[0].toHexString();
+    let func0Id = bigIntToHex(funcsIdCalced[0]);
     for (const i of Array(3).keys()) {
       expect(resBindRoles.funcIds[i]).to.be.eq(func0Id);
     }
@@ -808,11 +818,13 @@ describe("Access", function () {
     }
 
     // try bindRoles from not owner
-    await expect(makeBindRoles(access, user1, roleDatas)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(makeBindRoles(access, user1, roleDatas))
+      .to.be.revertedWithCustomError(access, "OwnableUnauthorizedAccount")
+      .withArgs(user1.address);
 
     let resBindRoles = await makeBindRoles(access, owner, roleDatas);
     for (const i of Array(3).keys()) {
-      expect(resBindRoles.funcIds[i]).to.be.eq(funcsIdCalced[i].toHexString());
+      expect(resBindRoles.funcIds[i]).to.be.eq(bigIntToHex(funcsIdCalced[i]));
     }
 
     // add rights
@@ -843,7 +855,7 @@ describe("Access", function () {
     await expect(access.connect(user3).burn(resGranted[0].tokenId)).to.be.rejectedWith("NotTokenOwner()");
 
     // Admin (owner) burn all access tokens from User1
-    for (const i of Array(user1TokensCount.toNumber()).keys()) {
+    for (const i of Array(Number(user1TokensCount)).keys()) {
       await access.connect(owner).burn(await access.tokenOfOwnerByIndex(user1.address, 0));
     }
 
@@ -897,7 +909,7 @@ describe("Access", function () {
         selectors[i],
         resRoles[i].roleId,
       );
-      expect(resBind.funcId).to.be.eq(funcsIdCalced[i].toHexString());
+      expect(resBind.funcId).to.be.eq(bigIntToHex(funcsIdCalced[i]));
     }
 
     // grant roles

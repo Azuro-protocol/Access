@@ -4,59 +4,34 @@ async function newBlock() {
   await network.provider.send("evm_mine");
 }
 
-async function getEventFromTx(contract, tx, eventFilter) {
-  /* const receipt = await tx.wait();
-  let iface = new ethers.utils.Interface(
-    express.interface.format(ethers.utils.FormatTypes.full).filter((x) => {
-      return x.includes(eventName);
-    }),
-  );
+function bigIntToHex(val) {
+  return "0x" + val.toString(16);
+}
 
-  let event;
-  for (const log of receipt.logs) {
-    if (log.topics[0] == iface.getEventTopic(iface.fragments[0])) {
-      event = iface.parseLog(log).args;
-      break;
-    }
-  } */
+async function getEventFromTx(contract, tx, eventFilter) {
   const receipt = await tx.wait();
   const events = await contract.queryFilter(eventFilter, -1);
-  //console.log("events[0]", events[0]);
   await newBlock(); // mine new block for correctly getting events (every withdraw transaction at new block)
-  //return events[0].transactionHash == tx.hash ? events[0].args[1] : 0n;
-  let event = events[0].transactionHash == tx.hash ? events[0].args : [];
-  //console.log("event", event);
-
+  let event = events.length == 0 ? [] : events[0].transactionHash == tx.hash ? events[0].args : [];
   const gas = BigInt(receipt.cumulativeGasUsed) * BigInt(receipt.gasPrice);
   return [event, gas];
 }
 
-async function getEventsFromTx(express, tx, eventName) {
+async function getEventsFromTx(contract, tx, eventFilter) {
   const receipt = await tx.wait();
-  let iface = new ethers.utils.Interface(
-    express.interface.format(ethers.utils.FormatTypes.full).filter((x) => {
-      return x.includes(eventName);
-    }),
-  );
-
-  let events = [];
-  for (const log of receipt.logs) {
-    if (log.topics[0] == iface.getEventTopic(iface.fragments[0])) {
-      events.push(iface.parseLog(log).args);
-    }
-  }
-
-  const gas = BigInt(receipt.cumulativeGasUsed) * BigInt(receipt.effectiveGasPrice);
+  const events = await contract.queryFilter(eventFilter, -1);
+  await newBlock(); // mine new block for correctly getting events (every withdraw transaction at new block)
+  const gas = BigInt(receipt.cumulativeGasUsed) * BigInt(receipt.gasPrice);
   return [events, gas];
 }
 
 const getChangeTokenTransferability = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "TokenTransferabilityChanged");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.TokenTransferabilityChanged);
   return { tokenId: event.tokenId, isNonTransferable: event.isNonTransferable, gasUsed: gas };
 };
 
 const getChangeTokensTransferability = async (access, tx) => {
-  let [events, gas] = await getEventsFromTx(access, tx, "TokenTransferabilityChanged");
+  let [events, gas] = await getEventsFromTx(access, tx, access.filters.TokenTransferabilityChanged);
   return { events: events, gasUsed: gas };
 };
 
@@ -66,38 +41,38 @@ const getRoleAddedDetails = async (access, tx) => {
 };
 
 const getRoleRenamedDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "RoleRenamed");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.RoleRenamed);
   return { role: event.role, roleId: event.roleId, gasUsed: gas };
 };
 
 const getRoleBoundDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "RoleBound");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.RoleBound);
   return { funcId: event.funcId, roleId: event.roleId, gasUsed: gas };
 };
 
 const getRolesBoundDetails = async (access, tx) => {
-  let [events, gas] = await getEventsFromTx(access, tx, "RoleBound");
+  let [events, gas] = await getEventsFromTx(access, tx, access.filters.RoleBound);
   let funcIds = [];
   let roleIds = [];
   for (const i of events.keys()) {
-    funcIds.push(events[i].funcId);
-    roleIds.push(events[i].roleId);
+    funcIds.push(events[i].args.funcId);
+    roleIds.push(events[i].args.roleId);
   }
   return { funcIds: funcIds, roleIds: roleIds, gasUsed: gas };
 };
 
 const getRoleUnboundDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "RoleUnbound");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.RoleUnbound);
   return { funcId: event.funcId, roleId: event.roleId, gasUsed: gas };
 };
 
 const getRoleGrantedDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "RoleGranted");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.RoleGranted);
   return { user: event.user, roleId: event.roleId, gasUsed: gas };
 };
 
 const getTransferNFTTokenDetails = async (access, tx) => {
-  let [event, gas] = await getEventFromTx(access, tx, "Transfer(");
+  let [event, gas] = await getEventFromTx(access, tx, access.filters.Transfer);
   return { from: event.from, to: event.to, tokenId: event.tokenId, gasUsed: gas };
 };
 
@@ -142,8 +117,8 @@ const makeChangeBatchTokenTransferability = async (access, owner, tokens, nonTra
   let resTokens = [];
   let isNonTransferables = [];
   for (const i of res.events.keys()) {
-    resTokens.push(res.events[i].tokenId);
-    isNonTransferables.push(res.events[i].isNonTransferable);
+    resTokens.push(res.events[i].args.tokenId);
+    isNonTransferables.push(res.events[i].args.isNonTransferable);
   }
   return { tokens: resTokens, isNonTransferables: isNonTransferables };
 };
@@ -173,6 +148,7 @@ function timeout(ms) {
 }
 
 module.exports = {
+  bigIntToHex,
   getRoleAddedDetails,
   getRoleBoundDetails,
   getRoleUnboundDetails,

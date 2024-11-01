@@ -126,7 +126,6 @@ contract Access is
         _nextTokenId = nextTokenId++;
         tokenRoles[_nextTokenId] = roleId;
         _mint(account, _nextTokenId);
-        _afterTokenTransfer(address(0), account, _nextTokenId);
     }
 
     /**
@@ -180,16 +179,17 @@ contract Access is
 
     /**
      * @dev Burns `tokenId`. See {ERC721-_burn}.
-     * - The caller must own `tokenId` or be an approved operator or access owner.
+     * The caller must be access contarct owner or own `tokenId` or be an approved operator.
      */
     function burn(uint256 tokenId) public virtual {
-        address owner_ = owner();
         if (
-           !(owner_ == _msgSender()) &&
-            !_isAuthorized(owner_, _msgSender(), tokenId)
-        ) revert NotTokenOwner();
-        _burn(tokenId);
-        _afterTokenTransfer(owner_, address(0), tokenId);
+            owner() == _msgSender() ||
+            _isAuthorized(ownerOf(tokenId), _msgSender(), tokenId)
+        ) {
+            _burn(tokenId);
+        } else {
+            revert NotTokenOwner();
+        }
     }
 
     /**
@@ -301,24 +301,29 @@ contract Access is
     }
 
     /**
-     * @dev Hook that is called after any (single) transfer of tokens. This includes minting and burning.
-     * See {ERC721BurnableUpgradeable-_afterTokenTransfer}.
+     * @dev See {ERC721-_update}. Adjusts role grants when tokens are transferred:
+     * grant role for the new token owner and revoke role from previous token owner
+     * reverts if token set to non transferable
+     * reverts if role already granted for the new owner
      */
-    function _afterTokenTransfer(
-        address from,
+    function _update(
         address to,
-        uint256 firstTokenId
-    ) internal {
-        uint8 roleId = tokenRoles[firstTokenId];
+        uint256 tokenId,
+        address auth
+    ) internal virtual override returns (address) {
+        address previousOwner = super._update(to, tokenId, auth);
+
+        uint8 roleId = tokenRoles[tokenId];
         // not burn
         if (to != address(0)) {
-            if (tokenNonTransferable[firstTokenId])
-                revert TokenNonTransferable();
+            if (tokenNonTransferable[tokenId]) revert TokenNonTransferable();
             if (roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
         // not mint
-        if (from != address(0)) _revokeRole(from, roleId);
+        if (previousOwner != address(0)) _revokeRole(previousOwner, roleId);
+
+        return previousOwner;
     }
 
     /**
