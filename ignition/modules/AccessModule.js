@@ -1,6 +1,7 @@
-const { ProxyModule, buildModule } = require("./ProxyModule");
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
+const ProxyModule = require("./ProxyModule");
 
-const AccessModule = buildModule("MyContractModule", (m) => {
+module.exports = buildModule("AccessModule", (m) => {
   // Get the proxy from the previous module.
   const { proxy } = m.useModule(ProxyModule);
 
@@ -9,5 +10,3 @@ const AccessModule = buildModule("MyContractModule", (m) => {
 
   return { access, proxy };
 });
-
-module.exports = { AccessModule, buildModule };

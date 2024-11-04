@@ -2,7 +2,7 @@ require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-contract-sizer");
 
-const MUMBAI_PRIVATE_KEY = process.env.MUMBAI_PRIVATE_KEY || "";
+const AMOY_PRIVATE_KEY = process.env.AMOY_PRIVATE_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 
 const GNOSIS_PRIVATE_KEY = process.env.GNOSIS_PRIVATE_KEY || "";
@@ -16,11 +16,10 @@ const exportNetworks = {
   },
 };
 
-if (MUMBAI_PRIVATE_KEY != "") {
-  exportNetworks["mumbai"] = {
-    //url: "https://polygon-testnet-rpc.allthatnode.com:8545",
-    url: "https://rpc.ankr.com/polygon_mumbai",
-    accounts: [`${MUMBAI_PRIVATE_KEY}`],
+if (AMOY_PRIVATE_KEY != "") {
+  exportNetworks["amoy"] = {
+    url: "https://polygon-amoy.drpc.org",
+    accounts: [`${AMOY_PRIVATE_KEY}`],
   };
   if (GNOSIS_PRIVATE_KEY != "") {
     exportNetworks["gnosis"] = {
@@ -46,18 +45,21 @@ module.exports = {
   },
   defaultNetwork: "hardhat",
   networks: exportNetworks,
+  sourcify: {
+    enabled: true
+  },
   etherscan: {
     apiKey: {
-      mumbai: POLYGONSCAN_API_KEY,
+      amoy: POLYGONSCAN_API_KEY,
       gnosis: GNOSISSCAN_API_KEY,
     },
     customChains: [
       {
-        network: "mumbai",
-        chainId: 80001,
+        network: "amoy",
+        chainId: 80002,
         urls: {
-          apiURL: "https://api-testnet.polygonscan.com/api",
-          browserURL: "https://mumbai.polygonscan.com",
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com/",
         },
       },
       {

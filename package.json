@@ -20,7 +20,9 @@
     "coverage": "npx hardhat coverage",
     "prettier_sol": "npx prettier --write --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
     "prettier-js": "npx prettier --write {scripts,test,utils,ignition/modules}/*.js --print-width 120 --tab-width 2",
-    "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat"
+    "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat",
+    "deploy-amoy": "npx hardhat ignition deploy ignition/modules/AccessModule.js --network amoy --verify"
+
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.7",

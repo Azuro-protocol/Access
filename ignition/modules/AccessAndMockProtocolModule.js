@@ -1,12 +1,11 @@
-const { AccessModule, buildModule } = require("./AccessModule");
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
+const AccessModule = require("./AccessModule");
 
-const accessAndMockProtocolModule = buildModule("AccessAndMockProtocolModule", (m) => {
-  const { access, proxy } = m.useModule(AccessModule);
+module.exports = buildModule("AccessAndMockProtocolModule", (m) => {
+  const { access } = m.useModule(AccessModule);
 
   // deploy mock rpotocol contract using access
   const mockProtocol = m.contract("MockProtocol", [access]);
 
-  return { access, proxy, mockProtocol };
+  return { access, mockProtocol };
 });
-
-module.exports = accessAndMockProtocolModule;

@@ -1,6 +1,6 @@
 const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
-const ProxyModule = buildModule("ProxyModule", (m) => {
+module.exports = buildModule("ProxyModule", (m) => {
   // Deploy the implementation of the `Access` contract
   const implementation = m.contract("Access");
 
@@ -14,5 +14,3 @@ const ProxyModule = buildModule("ProxyModule", (m) => {
 
   return { proxy };
 });
-
-module.exports = { ProxyModule, buildModule };
