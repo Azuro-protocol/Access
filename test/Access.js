@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const AccessAndMockProtocolModule = require("../ignition/modules/AccessAndMockProtocolModule");
+//const UpgradeAccessModule = require("../ignition/modules/UpgradeAccessModule");
 const {
   bigIntToHex,
   makeAddRole,
@@ -26,12 +27,15 @@ describe("Access", function () {
     users.push(user2);
     users.push(user3);
 
-    const { access, mockProtocol } = await ignition.deploy(AccessAndMockProtocolModule);
+    let { access, mockProtocol } = await ignition.deploy(AccessAndMockProtocolModule);
 
     await expect(access.initialize("Access NFT token", "AccNFT")).to.be.revertedWithCustomError(
       access,
       "InvalidInitialization()",
     );
+
+    // check uprgaded correctly to new version
+    expect(await access.version()).to.equal("v0.0.2");
 
     let mockProtocolAddress = await mockProtocol.getAddress();
 
