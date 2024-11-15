@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 async function newBlock() {
-  await network.provider.send("evm_mine");
+  if (hre.hardhatArguments.network == undefined) await network.provider.send("evm_mine");
 }
 
 function bigIntToHex(val) {

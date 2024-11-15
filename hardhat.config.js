@@ -3,6 +3,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-contract-sizer");
 
 const AMOY_PRIVATE_KEY = process.env.AMOY_PRIVATE_KEY || "";
+const POLYGON_PRIVATE_KEY = process.env.POLYGON_PRIVATE_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 
 const GNOSIS_PRIVATE_KEY = process.env.GNOSIS_PRIVATE_KEY || "";
@@ -16,17 +17,26 @@ const exportNetworks = {
   },
 };
 
+if (POLYGON_PRIVATE_KEY != "") {
+  exportNetworks["polygon"] = {
+    url: "https://polygon-rpc.com",
+    accounts: [`${POLYGON_PRIVATE_KEY}`],
+    gasPrice: 70000000000,
+  };
+}
+
 if (AMOY_PRIVATE_KEY != "") {
   exportNetworks["amoy"] = {
     url: "https://polygon-amoy.drpc.org",
     accounts: [`${AMOY_PRIVATE_KEY}`],
   };
-  if (GNOSIS_PRIVATE_KEY != "") {
-    exportNetworks["gnosis"] = {
-      url: "https://rpc.ankr.com/gnosis",
-      accounts: [`${GNOSIS_PRIVATE_KEY}`],
-    };
-  }
+}
+
+if (GNOSIS_PRIVATE_KEY != "") {
+  exportNetworks["gnosis"] = {
+    url: "https://rpc.ankr.com/gnosis",
+    accounts: [`${GNOSIS_PRIVATE_KEY}`],
+  };
 }
 
 module.exports = {
@@ -50,10 +60,19 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
+      polygon: POLYGONSCAN_API_KEY, 
       amoy: POLYGONSCAN_API_KEY,
       gnosis: GNOSISSCAN_API_KEY,
     },
     customChains: [
+      {
+        network: "polygon",
+        chainId: 137,
+        urls: {
+          apiURL: "https://api.polygonscan.com/api",
+          browserURL: "https://polygonscan.com/",
+        },
+      },
       {
         network: "amoy",
         chainId: 80002,

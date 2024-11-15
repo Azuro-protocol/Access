@@ -1,6 +1,5 @@
 const { expect } = require("chai");
 const AccessAndMockProtocolModule = require("../ignition/modules/AccessAndMockProtocolModule");
-//const UpgradeAccessModule = require("../ignition/modules/UpgradeAccessModule");
 const {
   bigIntToHex,
   makeAddRole,

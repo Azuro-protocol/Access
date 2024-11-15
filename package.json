@@ -21,9 +21,9 @@
     "prettier_sol": "npx prettier --write --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
     "prettier-js": "npx prettier --write {scripts,test,utils,ignition/modules}/*.js --print-width 120 --tab-width 2",
     "deploy-hardhat": "npx hardhat run scripts/deploy.js --network hardhat",
-    "deploy-amoy": "npx hardhat ignition deploy ignition/modules/ProxyModule.js --network amoy --verify",
-    "upgrade-amoy": "npx hardhat ignition deploy ignition/modules/UpgradeModule.js --network amoy --verify"
-
+    "deploy-polygon": "npx hardhat ignition deploy ignition/modules/ProxyModule.js --network polygon --verify",
+    "upgrade-polygon": "npx hardhat ignition deploy ignition/modules/UpgradeModule.js --network polygon --verify",
+    "make-mock-access": "npx hardhat run scripts/makeAccess.js --network polygon"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.7",

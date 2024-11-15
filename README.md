@@ -137,3 +137,15 @@ function changeBatchTokenTransferability(TokenTransferability[] calldata tokens)
 npx hardhat compile
 npx hardhat test
 ```
+
+# Example of access tokens
+
+Some access tokens with different granted roles
+
+## Roles
+Role id `0` - Role name `Role for some sensitive action` 
+Role id `1` - Role name `Role for public action, is safe`
+Role id `2` - Role name `Maintainer action role, settings`
+
+## How it looks like
+https://opensea.io/assets/matic/0x8a58b0547f8391ae7380bd25383d055fc85fd8e9
