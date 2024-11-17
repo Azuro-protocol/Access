@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const { timeout, makeAddRole, makeBindRoles, makeGrantRole } = require("../utils/utils");
 
 async function main() {
-  const TIME_OUT = 20000;
+  const TIME_OUT = 30000;
 
   const ACCESS_ADDRESS = process.env.ACCESS_ADDRESS;
   const [deployer] = await ethers.getSigners();

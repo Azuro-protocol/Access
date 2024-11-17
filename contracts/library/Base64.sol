@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.27;
 
 /**
     [MIT License]
@@ -30,9 +30,7 @@ library Base64 {
 
             for {
                 let i := 0
-            } lt(i, len) {
-
-            } {
+            } lt(i, len) {} {
                 i := add(i, 3)
                 let input := and(mload(add(data, i)), 0xffffff)
 

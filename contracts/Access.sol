@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.17;
+pragma solidity 0.8.27;
 
 import "./library/Base64.sol";
 import "./library/Strings.sol";
@@ -50,7 +50,7 @@ contract Access is
         string memory name_,
         string memory symbol_
     ) external initializer {
-        __Ownable_init_unchained();
+        __Ownable_init_unchained(msg.sender); // set ownership
         __ERC721_init(name_, symbol_);
     }
 
@@ -179,14 +179,17 @@ contract Access is
 
     /**
      * @dev Burns `tokenId`. See {ERC721-_burn}.
-     * - The caller must own `tokenId` or be an approved operator or access owner.
+     * The caller must be access contarct owner or own `tokenId` or be an approved operator.
      */
     function burn(uint256 tokenId) public virtual {
         if (
-            !_isApprovedOrOwner(_msgSender(), tokenId) &&
-            !(owner() == _msgSender())
-        ) revert NotTokenOwner();
-        _burn(tokenId);
+            owner() == _msgSender() ||
+            _isAuthorized(ownerOf(tokenId), _msgSender(), tokenId)
+        ) {
+            _burn(tokenId);
+        } else {
+            revert NotTokenOwner();
+        }
     }
 
     /**
@@ -298,25 +301,29 @@ contract Access is
     }
 
     /**
-     * @dev Hook that is called after any (single) transfer of tokens. This includes minting and burning.
-     * See {ERC721BurnableUpgradeable-_afterTokenTransfer}.
+     * @dev See {ERC721-_update}. Adjusts role grants when tokens are transferred:
+     * grant role for the new token owner and revoke role from previous token owner
+     * reverts if token set to non transferable
+     * reverts if role already granted for the new owner
      */
-    function _afterTokenTransfer(
-        address from,
+    function _update(
         address to,
-        uint256 firstTokenId,
-        uint256 // unused parameter - silence warning
-    ) internal virtual override {
-        uint8 roleId = tokenRoles[firstTokenId];
+        uint256 tokenId,
+        address auth
+    ) internal virtual override returns (address) {
+        address previousOwner = super._update(to, tokenId, auth);
+
+        uint8 roleId = tokenRoles[tokenId];
         // not burn
         if (to != address(0)) {
-            if (tokenNonTransferable[firstTokenId])
-                revert TokenNonTransferable();
+            if (tokenNonTransferable[tokenId]) revert TokenNonTransferable();
             if (roleGranted(to, roleId)) revert RoleAlreadyGranted();
             _grantRole(to, roleId);
         }
         // not mint
-        if (from != address(0)) _revokeRole(from, roleId);
+        if (previousOwner != address(0)) _revokeRole(previousOwner, roleId);
+
+        return previousOwner;
     }
 
     /**

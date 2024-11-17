@@ -1,12 +1,9 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@openzeppelin/hardhat-upgrades");
-require("hardhat-contract-sizer");
-require("hardhat-gas-reporter");
-require("@nomiclabs/hardhat-etherscan");
-
 require("dotenv").config();
+require("@nomicfoundation/hardhat-toolbox");
+require("hardhat-contract-sizer");
 
-const MUMBAI_PRIVATE_KEY = process.env.MUMBAI_PRIVATE_KEY || "";
+const AMOY_PRIVATE_KEY = process.env.AMOY_PRIVATE_KEY || "";
+const POLYGON_PRIVATE_KEY = process.env.POLYGON_PRIVATE_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 
 const GNOSIS_PRIVATE_KEY = process.env.GNOSIS_PRIVATE_KEY || "";
@@ -20,25 +17,33 @@ const exportNetworks = {
   },
 };
 
-if (MUMBAI_PRIVATE_KEY != "") {
-  exportNetworks["mumbai"] = {
-    //url: "https://polygon-testnet-rpc.allthatnode.com:8545",
-    url: "https://rpc.ankr.com/polygon_mumbai",
-    accounts: [`${MUMBAI_PRIVATE_KEY}`],
+if (POLYGON_PRIVATE_KEY != "") {
+  exportNetworks["polygon"] = {
+    url: "https://polygon-rpc.com",
+    accounts: [`${POLYGON_PRIVATE_KEY}`],
+    gasPrice: 70000000000,
   };
-  if (GNOSIS_PRIVATE_KEY != "") {
-    exportNetworks["gnosis"] = {
-      url: "https://rpc.ankr.com/gnosis",
-      accounts: [`${GNOSIS_PRIVATE_KEY}`],
-    };
-  }
+}
+
+if (AMOY_PRIVATE_KEY != "") {
+  exportNetworks["amoy"] = {
+    url: "https://polygon-amoy.drpc.org",
+    accounts: [`${AMOY_PRIVATE_KEY}`],
+  };
+}
+
+if (GNOSIS_PRIVATE_KEY != "") {
+  exportNetworks["gnosis"] = {
+    url: "https://rpc.ankr.com/gnosis",
+    accounts: [`${GNOSIS_PRIVATE_KEY}`],
+  };
 }
 
 module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.17",
+        version: "0.8.27",
         settings: {
           optimizer: {
             enabled: true,
@@ -50,18 +55,30 @@ module.exports = {
   },
   defaultNetwork: "hardhat",
   networks: exportNetworks,
+  sourcify: {
+    enabled: true
+  },
   etherscan: {
     apiKey: {
-      mumbai: POLYGONSCAN_API_KEY,
+      polygon: POLYGONSCAN_API_KEY, 
+      amoy: POLYGONSCAN_API_KEY,
       gnosis: GNOSISSCAN_API_KEY,
     },
     customChains: [
       {
-        network: "mumbai",
-        chainId: 80001,
+        network: "polygon",
+        chainId: 137,
         urls: {
-          apiURL: "https://api-testnet.polygonscan.com/api",
-          browserURL: "https://mumbai.polygonscan.com",
+          apiURL: "https://api.polygonscan.com/api",
+          browserURL: "https://polygonscan.com/",
+        },
+      },
+      {
+        network: "amoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com/",
         },
       },
       {
