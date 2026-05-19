@@ -148,4 +148,4 @@ Role id `1` - Role name `Role for public action, is safe`
 Role id `2` - Role name `Maintainer action role, settings`
 
 ## How it looks like
-https://opensea.io/assets/matic/0x8a58b0547f8391ae7380bd25383d055fc85fd8e9
+https://polygonscan.com/token/0x8a58b0547f8391ae7380bd25383d055fc85fd8e9#inventory
